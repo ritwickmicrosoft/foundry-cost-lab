@@ -1,0 +1,30 @@
+{
+  "name": "foundry-cost-lab-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/src/{index.js,functions/*.js}",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "prestart": "npm run build",
+    "start": "func start",
+    "sync:local": "npm run build && node dist/src/scripts/syncLocal.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@azure/functions": "latest",
+    "@azure/identity": "latest",
+    "@azure/storage-blob": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}

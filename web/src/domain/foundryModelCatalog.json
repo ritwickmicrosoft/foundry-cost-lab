@@ -1,0 +1,2406 @@
+﻿{
+    "asOf":  "2026-08-20",
+    "sourceUrl":  "Microsoft Foundry model catalog MCP",
+    "models":  [
+                   {
+                       "id":  "direct-azure/gpt-5.6-sol/2026-07-09",
+                       "name":  "gpt-5.6-sol",
+                       "version":  "2026-07-09",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.6-sol/versions/2026-07-09"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.6-luna/2026-07-09",
+                       "name":  "gpt-5.6-luna",
+                       "version":  "2026-07-09",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.6-luna/versions/2026-07-09"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.6-terra/2026-07-09",
+                       "name":  "gpt-5.6-terra",
+                       "version":  "2026-07-09",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.6-terra/versions/2026-07-09"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-realtime-2.1/2026-07-07",
+                       "name":  "gpt-realtime-2.1",
+                       "version":  "2026-07-07",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "audio-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-realtime-2.1/versions/2026-07-07"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-realtime-2.1-mini/2026-07-07",
+                       "name":  "gpt-realtime-2.1-mini",
+                       "version":  "2026-07-07",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "audio-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-realtime-2.1-mini/versions/2026-07-07"
+                   },
+                   {
+                       "id":  "direct-azure/claude-opus-5/2",
+                       "name":  "claude-opus-5",
+                       "version":  "2",
+                       "publisher":  "Anthropic",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "messages"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-anthropic/models/claude-opus-5/versions/2"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-chat-latest/2026-08-06",
+                       "name":  "gpt-chat-latest",
+                       "version":  "2026-08-06",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-chat-latest/versions/2026-08-06"
+                   },
+                   {
+                       "id":  "direct-azure/Kimi-K2.7-Code/2026-06-15",
+                       "name":  "Kimi-K2.7-Code",
+                       "version":  "2026-06-15",
+                       "publisher":  "Moonshot AI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-moonshotai/models/Kimi-K2.7-Code/versions/2026-06-15"
+                   },
+                   {
+                       "id":  "direct-azure/claude-sonnet-5/2",
+                       "name":  "claude-sonnet-5",
+                       "version":  "2",
+                       "publisher":  "Anthropic",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "messages"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-anthropic/models/claude-sonnet-5/versions/2"
+                   },
+                   {
+                       "id":  "direct-azure/Cohere-command-a-plus-05-2026/1",
+                       "name":  "Cohere-command-a-plus-05-2026",
+                       "version":  "1",
+                       "publisher":  "Cohere",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-cohere/models/Cohere-command-a-plus-05-2026/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/claude-mythos-5/1",
+                       "name":  "claude-mythos-5",
+                       "version":  "1",
+                       "publisher":  "Anthropic",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "messages"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-anthropic/models/claude-mythos-5/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/claude-fable-5/1",
+                       "name":  "claude-fable-5",
+                       "version":  "1",
+                       "publisher":  "Anthropic",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "messages"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-anthropic/models/claude-fable-5/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/MAI-Voice-2/2026-06-02",
+                       "name":  "MAI-Voice-2",
+                       "version":  "2026-06-02",
+                       "publisher":  "Microsoft",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-to-speech",
+                                              "audio-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-cogsvc/models/MAI-Voice-2/versions/2026-06-02"
+                   },
+                   {
+                       "id":  "direct-azure/MAI-Transcribe-1.5/2026-06-02",
+                       "name":  "MAI-Transcribe-1.5",
+                       "version":  "2026-06-02",
+                       "publisher":  "Microsoft",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "automatic-speech-recognition",
+                                              "speech-to-text"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-cogsvc/models/MAI-Transcribe-1.5/versions/2026-06-02"
+                   },
+                   {
+                       "id":  "direct-azure/MAI-Image-2.5/2026-06-02",
+                       "name":  "MAI-Image-2.5",
+                       "version":  "2026-06-02",
+                       "publisher":  "Microsoft",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-to-image"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-mai/models/MAI-Image-2.5/versions/2026-06-02"
+                   },
+                   {
+                       "id":  "direct-azure/MAI-Image-2.5-Flash/2026-06-02",
+                       "name":  "MAI-Image-2.5-Flash",
+                       "version":  "2026-06-02",
+                       "publisher":  "Microsoft",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-to-image"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-mai/models/MAI-Image-2.5-Flash/versions/2026-06-02"
+                   },
+                   {
+                       "id":  "direct-azure/MAI-Thinking-1/2026-06-01",
+                       "name":  "MAI-Thinking-1",
+                       "version":  "2026-06-01",
+                       "publisher":  "Microsoft",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-mai/models/MAI-Thinking-1/versions/2026-06-01"
+                   },
+                   {
+                       "id":  "direct-azure/claude-opus-4-8/2",
+                       "name":  "claude-opus-4-8",
+                       "version":  "2",
+                       "publisher":  "Anthropic",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "messages"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-anthropic/models/claude-opus-4-8/versions/2"
+                   },
+                   {
+                       "id":  "direct-azure/grok-4.3/1",
+                       "name":  "grok-4.3",
+                       "version":  "1",
+                       "publisher":  "xAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-xai/models/grok-4.3/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-realtime-translate/2026-05-07",
+                       "name":  "gpt-realtime-translate",
+                       "version":  "2026-05-07",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "speech-translation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-realtime-translate/versions/2026-05-07"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-realtime-whisper/2026-05-07",
+                       "name":  "gpt-realtime-whisper",
+                       "version":  "2026-05-07",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "automatic-speech-recognition"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-realtime-whisper/versions/2026-05-07"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-realtime-2/2026-05-07",
+                       "name":  "gpt-realtime-2",
+                       "version":  "2026-05-07",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "audio-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-realtime-2/versions/2026-05-07"
+                   },
+                   {
+                       "id":  "direct-azure/DeepSeek-V4-Pro/2026-04-23",
+                       "name":  "DeepSeek-V4-Pro",
+                       "version":  "2026-04-23",
+                       "publisher":  "DeepSeek",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "ServerlessMaaS",
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-deepseek/models/DeepSeek-V4-Pro/versions/2026-04-23"
+                   },
+                   {
+                       "id":  "direct-azure/DeepSeek-V4-Flash/2026-04-23",
+                       "name":  "DeepSeek-V4-Flash",
+                       "version":  "2026-04-23",
+                       "publisher":  "DeepSeek",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "ServerlessMaaS",
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-deepseek/models/DeepSeek-V4-Flash/versions/2026-04-23"
+                   },
+                   {
+                       "id":  "direct-azure/Kimi-K2.6/2026-04-20",
+                       "name":  "Kimi-K2.6",
+                       "version":  "2026-04-20",
+                       "publisher":  "Moonshot AI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-moonshotai/models/Kimi-K2.6/versions/2026-04-20"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-image-2/2026-04-21",
+                       "name":  "gpt-image-2",
+                       "version":  "2026-04-21",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-to-image",
+                                              "image-to-image"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-image-2/versions/2026-04-21"
+                   },
+                   {
+                       "id":  "direct-azure/claude-opus-4-7/1",
+                       "name":  "claude-opus-4-7",
+                       "version":  "1",
+                       "publisher":  "Anthropic",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "messages"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-anthropic/models/claude-opus-4-7/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/MAI-Image-2e/2026-04-09",
+                       "name":  "MAI-Image-2e",
+                       "version":  "2026-04-09",
+                       "publisher":  "Microsoft",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-to-image"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-mai/models/MAI-Image-2e/versions/2026-04-09"
+                   },
+                   {
+                       "id":  "direct-azure/grok-4-20-reasoning/1",
+                       "name":  "grok-4-20-reasoning",
+                       "version":  "1",
+                       "publisher":  "xAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-xai/models/grok-4-20-reasoning/versions/1"
+                   },
+                   {
+                       "id":  "hugging-face/zai-org--glm-5.2-fp8/5",
+                       "name":  "zai-org--glm-5.2-fp8",
+                       "version":  "5",
+                       "publisher":  "Hugging Face",
+                       "source":  "hugging-face",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP",
+                                                 "Managed Compute"
+                                             ],
+                       "assetId":  "azureml://registries/azure-huggingface/models/zai-org--glm-5.2-fp8/versions/5"
+                   },
+                   {
+                       "id":  "direct-azure/grok-4-20-non-reasoning/1",
+                       "name":  "grok-4-20-non-reasoning",
+                       "version":  "1",
+                       "publisher":  "xAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-xai/models/grok-4-20-non-reasoning/versions/1"
+                   },
+                   {
+                       "id":  "hugging-face/qwen--qwen3.6-27b/2",
+                       "name":  "qwen--qwen3.6-27b",
+                       "version":  "2",
+                       "publisher":  "Hugging Face",
+                       "source":  "hugging-face",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP",
+                                                 "Managed Compute"
+                                             ],
+                       "assetId":  "azureml://registries/azure-huggingface/models/qwen--qwen3.6-27b/versions/2"
+                   },
+                   {
+                       "id":  "direct-azure/MAI-Voice-1/2025-12-18",
+                       "name":  "MAI-Voice-1",
+                       "version":  "2025-12-18",
+                       "publisher":  "Microsoft",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-to-speech",
+                                              "audio-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-cogsvc/models/MAI-Voice-1/versions/2025-12-18"
+                   },
+                   {
+                       "id":  "direct-azure/MAI-Transcribe-1/2026-01-23",
+                       "name":  "MAI-Transcribe-1",
+                       "version":  "2026-01-23",
+                       "publisher":  "Microsoft",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "automatic-speech-recognition",
+                                              "speech-to-text"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-cogsvc/models/MAI-Transcribe-1/versions/2026-01-23"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.4-nano/2026-03-17",
+                       "name":  "gpt-5.4-nano",
+                       "version":  "2026-03-17",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.4-nano/versions/2026-03-17"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.4-mini/2026-03-17",
+                       "name":  "gpt-5.4-mini",
+                       "version":  "2026-03-17",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.4-mini/versions/2026-03-17"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.4-pro/2026-03-05",
+                       "name":  "gpt-5.4-pro",
+                       "version":  "2026-03-05",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.4-pro/versions/2026-03-05"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.4/2026-03-05",
+                       "name":  "gpt-5.4",
+                       "version":  "2026-03-05",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.4/versions/2026-03-05"
+                   },
+                   {
+                       "id":  "fireworks/FW-MiniMax-M2.5/1",
+                       "name":  "FW-MiniMax-M2.5",
+                       "version":  "1",
+                       "publisher":  "Fireworks",
+                       "source":  "fireworks",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-fireworks/models/FW-MiniMax-M2.5/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/claude-opus-4-6/1",
+                       "name":  "claude-opus-4-6",
+                       "version":  "1",
+                       "publisher":  "Anthropic",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "messages"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-anthropic/models/claude-opus-4-6/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/claude-sonnet-4-6/1",
+                       "name":  "claude-sonnet-4-6",
+                       "version":  "1",
+                       "publisher":  "Anthropic",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "messages"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-anthropic/models/claude-sonnet-4-6/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.3-codex/2026-02-24",
+                       "name":  "gpt-5.3-codex",
+                       "version":  "2026-02-24",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.3-codex/versions/2026-02-24"
+                   },
+                   {
+                       "id":  "direct-azure/model-router/2025-11-18",
+                       "name":  "model-router",
+                       "version":  "2025-11-18",
+                       "publisher":  "Microsoft",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-routers/models/model-router/versions/2025-11-18"
+                   },
+                   {
+                       "id":  "direct-azure/Kimi-K2.5/1",
+                       "name":  "Kimi-K2.5",
+                       "version":  "1",
+                       "publisher":  "Moonshot AI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-moonshotai/models/Kimi-K2.5/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/grok-4-1-fast-non-reasoning/1",
+                       "name":  "grok-4-1-fast-non-reasoning",
+                       "version":  "1",
+                       "publisher":  "xAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-xai/models/grok-4-1-fast-non-reasoning/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/grok-4-1-fast-reasoning/1",
+                       "name":  "grok-4-1-fast-reasoning",
+                       "version":  "1",
+                       "publisher":  "xAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-xai/models/grok-4-1-fast-reasoning/versions/1"
+                   },
+                   {
+                       "id":  "fireworks/FW-GLM-5/1",
+                       "name":  "FW-GLM-5",
+                       "version":  "1",
+                       "publisher":  "Fireworks",
+                       "source":  "fireworks",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-fireworks/models/FW-GLM-5/versions/1"
+                   },
+                   {
+                       "id":  "fireworks/FW-GPT-OSS-120B/1",
+                       "name":  "FW-GPT-OSS-120B",
+                       "version":  "1",
+                       "publisher":  "Fireworks",
+                       "source":  "fireworks",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-fireworks/models/FW-GPT-OSS-120B/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-audio-1.5/2026-02-23",
+                       "name":  "gpt-audio-1.5",
+                       "version":  "2026-02-23",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "audio-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-audio-1.5/versions/2026-02-23"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-realtime-1.5/2026-02-23",
+                       "name":  "gpt-realtime-1.5",
+                       "version":  "2026-02-23",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "audio-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-realtime-1.5/versions/2026-02-23"
+                   },
+                   {
+                       "id":  "fireworks/FW-Kimi-K2.5/1",
+                       "name":  "FW-Kimi-K2.5",
+                       "version":  "1",
+                       "publisher":  "Fireworks",
+                       "source":  "fireworks",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-fireworks/models/FW-Kimi-K2.5/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/DeepSeek-V3.2/1",
+                       "name":  "DeepSeek-V3.2",
+                       "version":  "1",
+                       "publisher":  "DeepSeek",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "ServerlessMaaS",
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-deepseek/models/DeepSeek-V3.2/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/mistral-document-ai-2512/1",
+                       "name":  "mistral-document-ai-2512",
+                       "version":  "1",
+                       "publisher":  "Mistral AI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "image-to-text"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-mistral/models/mistral-document-ai-2512/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.2-codex/2026-01-14",
+                       "name":  "gpt-5.2-codex",
+                       "version":  "2026-01-14",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.2-codex/versions/2026-01-14"
+                   },
+                   {
+                       "id":  "fireworks/FW-DeepSeek-V3.2/1",
+                       "name":  "FW-DeepSeek-V3.2",
+                       "version":  "1",
+                       "publisher":  "Fireworks",
+                       "source":  "fireworks",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-fireworks/models/FW-DeepSeek-V3.2/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/DeepSeek-V3.2-Speciale/1",
+                       "name":  "DeepSeek-V3.2-Speciale",
+                       "version":  "1",
+                       "publisher":  "DeepSeek",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "ServerlessMaaS",
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-deepseek/models/DeepSeek-V3.2-Speciale/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.2/2025-12-11",
+                       "name":  "gpt-5.2",
+                       "version":  "2025-12-11",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.2/versions/2025-12-11"
+                   },
+                   {
+                       "id":  "direct-azure/Cohere-rerank-v4.0-pro/1",
+                       "name":  "Cohere-rerank-v4.0-pro",
+                       "version":  "1",
+                       "publisher":  "Cohere",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-classification"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "ServerlessMaaS",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-cohere/models/Cohere-rerank-v4.0-pro/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/Cohere-rerank-v4.0-fast/2",
+                       "name":  "Cohere-rerank-v4.0-fast",
+                       "version":  "2",
+                       "publisher":  "Cohere",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-classification"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "ServerlessMaaS",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-cohere/models/Cohere-rerank-v4.0-fast/versions/2"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.1-codex-max/2025-12-04",
+                       "name":  "gpt-5.1-codex-max",
+                       "version":  "2025-12-04",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.1-codex-max/versions/2025-12-04"
+                   },
+                   {
+                       "id":  "direct-azure/claude-opus-4-5/20251101",
+                       "name":  "claude-opus-4-5",
+                       "version":  "20251101",
+                       "publisher":  "Anthropic",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "messages"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-anthropic/models/claude-opus-4-5/versions/20251101"
+                   },
+                   {
+                       "id":  "direct-azure/claude-sonnet-4-5/20250929",
+                       "name":  "claude-sonnet-4-5",
+                       "version":  "20250929",
+                       "publisher":  "Anthropic",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "messages"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-anthropic/models/claude-sonnet-4-5/versions/20250929"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.1/2025-11-13",
+                       "name":  "gpt-5.1",
+                       "version":  "2025-11-13",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.1/versions/2025-11-13"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.1-codex/2025-11-13",
+                       "name":  "gpt-5.1-codex",
+                       "version":  "2025-11-13",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.1-codex/versions/2025-11-13"
+                   },
+                   {
+                       "id":  "direct-azure/Mistral-Large-3/1",
+                       "name":  "Mistral-Large-3",
+                       "version":  "1",
+                       "publisher":  "Mistral AI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-mistral/models/Mistral-Large-3/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/claude-haiku-4-5/2",
+                       "name":  "claude-haiku-4-5",
+                       "version":  "2",
+                       "publisher":  "Anthropic",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "messages"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-anthropic/models/claude-haiku-4-5/versions/2"
+                   },
+                   {
+                       "id":  "direct-azure/grok-4/1",
+                       "name":  "grok-4",
+                       "version":  "1",
+                       "publisher":  "xAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-xai/models/grok-4/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/sora-2/2025-10-06",
+                       "name":  "sora-2",
+                       "version":  "2025-10-06",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "video-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/sora-2/versions/2025-10-06"
+                   },
+                   {
+                       "id":  "direct-azure/embed-v-4-0/6",
+                       "name":  "embed-v-4-0",
+                       "version":  "6",
+                       "publisher":  "Cohere",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "embeddings",
+                                              "summarization"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-cohere/models/embed-v-4-0/versions/6"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5.1-codex-mini/2025-11-13",
+                       "name":  "gpt-5.1-codex-mini",
+                       "version":  "2025-11-13",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5.1-codex-mini/versions/2025-11-13"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5-pro/2025-10-06",
+                       "name":  "gpt-5-pro",
+                       "version":  "2025-10-06",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5-pro/versions/2025-10-06"
+                   },
+                   {
+                       "id":  "direct-azure/Llama-4-Maverick-17B-128E-Instruct-FP8/5",
+                       "name":  "Llama-4-Maverick-17B-128E-Instruct-FP8",
+                       "version":  "5",
+                       "publisher":  "Meta",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-meta/models/Llama-4-Maverick-17B-128E-Instruct-FP8/versions/5"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5/2025-08-07",
+                       "name":  "gpt-5",
+                       "version":  "2025-08-07",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5/versions/2025-08-07"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-4.1/2025-04-14",
+                       "name":  "gpt-4.1",
+                       "version":  "2025-04-14",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-4.1/versions/2025-04-14"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-4.1-mini/2025-04-14",
+                       "name":  "gpt-4.1-mini",
+                       "version":  "2025-04-14",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-4.1-mini/versions/2025-04-14"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-4o-transcribe-diarize/2025-10-15",
+                       "name":  "gpt-4o-transcribe-diarize",
+                       "version":  "2025-10-15",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "speech-to-text"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-4o-transcribe-diarize/versions/2025-10-15"
+                   },
+                   {
+                       "id":  "direct-azure/Flux.1-Kontext-pro/1",
+                       "name":  "Flux.1-Kontext-pro",
+                       "version":  "1",
+                       "publisher":  "Black Forest Labs",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-to-image",
+                                              "image-to-image"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-blackforestlabs/models/Flux.1-Kontext-pro/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5-codex/2025-09-15",
+                       "name":  "gpt-5-codex",
+                       "version":  "2025-09-15",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5-codex/versions/2025-09-15"
+                   },
+                   {
+                       "id":  "direct-azure/Flux-1.1-Pro/1",
+                       "name":  "Flux-1.1-Pro",
+                       "version":  "1",
+                       "publisher":  "Black Forest Labs",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-to-image"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-blackforestlabs/models/Flux-1.1-Pro/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/o3/2025-04-16",
+                       "name":  "o3",
+                       "version":  "2025-04-16",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/o3/versions/2025-04-16"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-realtime-mini/2025-12-15",
+                       "name":  "gpt-realtime-mini",
+                       "version":  "2025-12-15",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "audio-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-realtime-mini/versions/2025-12-15"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5-nano/2025-08-07",
+                       "name":  "gpt-5-nano",
+                       "version":  "2025-08-07",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5-nano/versions/2025-08-07"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-5-mini/2025-08-07",
+                       "name":  "gpt-5-mini",
+                       "version":  "2025-08-07",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API",
+                                                 "Instant"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-5-mini/versions/2025-08-07"
+                   },
+                   {
+                       "id":  "direct-azure/DeepSeek-R1-0528/1",
+                       "name":  "DeepSeek-R1-0528",
+                       "version":  "1",
+                       "publisher":  "DeepSeek",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "ServerlessMaaS",
+                                                 "UnifiedEndpointMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-deepseek/models/DeepSeek-R1-0528/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/o4-mini/2025-04-16",
+                       "name":  "o4-mini",
+                       "version":  "2025-04-16",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/o4-mini/versions/2025-04-16"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-4.1-nano/2025-04-14",
+                       "name":  "gpt-4.1-nano",
+                       "version":  "2025-04-14",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-4.1-nano/versions/2025-04-14"
+                   },
+                   {
+                       "id":  "direct-azure/grok-code-fast-1/1",
+                       "name":  "grok-code-fast-1",
+                       "version":  "1",
+                       "publisher":  "xAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-xai/models/grok-code-fast-1/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/o3-mini/2025-01-31",
+                       "name":  "o3-mini",
+                       "version":  "2025-01-31",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/o3-mini/versions/2025-01-31"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-audio-mini/2025-10-06",
+                       "name":  "gpt-audio-mini",
+                       "version":  "2025-10-06",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "audio-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-audio-mini/versions/2025-10-06"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-oss-120b/4",
+                       "name":  "gpt-oss-120b",
+                       "version":  "4",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-openai-oss/models/gpt-oss-120b/versions/4"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-oss-120B/4",
+                       "name":  "gpt-oss-120B",
+                       "version":  "4",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+
+                                             ],
+                       "assetId":  "azureml://registries/azureml-openai-oss/models/gpt-oss-120B/versions/4"
+                   },
+                   {
+                       "id":  "direct-azure/Llama-3.3-70B-Instruct/10",
+                       "name":  "Llama-3.3-70B-Instruct",
+                       "version":  "10",
+                       "publisher":  "Meta",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-meta/models/Llama-3.3-70B-Instruct/versions/10"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-realtime/2025-08-28",
+                       "name":  "gpt-realtime",
+                       "version":  "2025-08-28",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "audio-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-realtime/versions/2025-08-28"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-audio/2025-08-28",
+                       "name":  "gpt-audio",
+                       "version":  "2025-08-28",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "audio-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "AOAI",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-audio/versions/2025-08-28"
+                   },
+                   {
+                       "id":  "direct-azure/mistral-medium-2505/1",
+                       "name":  "mistral-medium-2505",
+                       "version":  "1",
+                       "publisher":  "Mistral AI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "image-classification"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-mistral/models/mistral-medium-2505/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/o3-deep-research/2025-06-26",
+                       "name":  "o3-deep-research",
+                       "version":  "2025-06-26",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "data-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/o3-deep-research/versions/2025-06-26"
+                   },
+                   {
+                       "id":  "direct-azure/codex-mini/2025-05-16",
+                       "name":  "codex-mini",
+                       "version":  "2025-05-16",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/codex-mini/versions/2025-05-16"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-oss-safeguard-120b/5",
+                       "name":  "gpt-oss-safeguard-120b",
+                       "version":  "5",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-openai-oss/models/gpt-oss-safeguard-120b/versions/5"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-oss-safeguard-20b/2",
+                       "name":  "gpt-oss-safeguard-20b",
+                       "version":  "2",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-openai-oss/models/gpt-oss-safeguard-20b/versions/2"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-oss-20b/11",
+                       "name":  "gpt-oss-20b",
+                       "version":  "11",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP",
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API",
+                                                 "Foundry Local on Azure Local"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-openai-oss/models/gpt-oss-20b/versions/11"
+                   },
+                   {
+                       "id":  "direct-azure/o3-pro/2025-06-10",
+                       "name":  "o3-pro",
+                       "version":  "2025-06-10",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/o3-pro/versions/2025-06-10"
+                   },
+                   {
+                       "id":  "foundry-labs/EvoDiff/1",
+                       "name":  "EvoDiff",
+                       "version":  "1",
+                       "publisher":  "Microsoft",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "protein-sequence-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP",
+                                                 "ServerlessMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/EvoDiff/versions/1"
+                   },
+                   {
+                       "id":  "foundry-labs/Phi-4-reasoning/1",
+                       "name":  "Phi-4-reasoning",
+                       "version":  "1",
+                       "publisher":  "Microsoft",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "ServerlessMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/Phi-4-reasoning/versions/1"
+                   },
+                   {
+                       "id":  "foundry-labs/Phi-4-mini-reasoning/1",
+                       "name":  "Phi-4-mini-reasoning",
+                       "version":  "1",
+                       "publisher":  "Microsoft",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP",
+                                                 "ServerlessMaaS",
+                                                 "UnifiedEndpointMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/Phi-4-mini-reasoning/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/Llama-4-Scout-17B-16E-Instruct/4",
+                       "name":  "Llama-4-Scout-17B-16E-Instruct",
+                       "version":  "4",
+                       "publisher":  "Meta",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "ServerlessMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-meta/models/Llama-4-Scout-17B-16E-Instruct/versions/4"
+                   },
+                   {
+                       "id":  "direct-azure/cohere-command-a/4",
+                       "name":  "cohere-command-a",
+                       "version":  "4",
+                       "publisher":  "Cohere",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-cohere/models/cohere-command-a/versions/4"
+                   },
+                   {
+                       "id":  "direct-azure/Llama-4-Scout-17B-16E/2",
+                       "name":  "Llama-4-Scout-17B-16E",
+                       "version":  "2",
+                       "publisher":  "Meta",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-meta/models/Llama-4-Scout-17B-16E/versions/2"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-4o-mini-tts/2025-12-15",
+                       "name":  "gpt-4o-mini-tts",
+                       "version":  "2025-12-15",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-to-speech"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-4o-mini-tts/versions/2025-12-15"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-4o-transcribe/2025-03-20",
+                       "name":  "gpt-4o-transcribe",
+                       "version":  "2025-03-20",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "speech-to-text"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-4o-transcribe/versions/2025-03-20"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-4o-mini-transcribe/2025-12-15",
+                       "name":  "gpt-4o-mini-transcribe",
+                       "version":  "2025-12-15",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "speech-to-text"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-4o-mini-transcribe/versions/2025-12-15"
+                   },
+                   {
+                       "id":  "direct-azure/DeepSeek-R1/1",
+                       "name":  "DeepSeek-R1",
+                       "version":  "1",
+                       "publisher":  "DeepSeek",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "ServerlessMaaS",
+                                                 "UnifiedEndpointMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-deepseek/models/DeepSeek-R1/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/computer-use-preview/2025-03-11",
+                       "name":  "computer-use-preview",
+                       "version":  "2025-03-11",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/computer-use-preview/versions/2025-03-11"
+                   },
+                   {
+                       "id":  "foundry-labs/Phi-4-mini-instruct/1",
+                       "name":  "Phi-4-mini-instruct",
+                       "version":  "1",
+                       "publisher":  "Microsoft",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "ServerlessMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/Phi-4-mini-instruct/versions/1"
+                   },
+                   {
+                       "id":  "foundry-labs/Phi-4-multimodal-instruct/2",
+                       "name":  "Phi-4-multimodal-instruct",
+                       "version":  "2",
+                       "publisher":  "Microsoft",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "ServerlessMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/Phi-4-multimodal-instruct/versions/2"
+                   },
+                   {
+                       "id":  "foundry-labs/Phi-4/8",
+                       "name":  "Phi-4",
+                       "version":  "8",
+                       "publisher":  "Microsoft",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "ServerlessMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/Phi-4/versions/8"
+                   },
+                   {
+                       "id":  "direct-azure/mistral-small-2503/1",
+                       "name":  "mistral-small-2503",
+                       "version":  "1",
+                       "publisher":  "Mistral AI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "image-classification",
+                                              "summarization",
+                                              "text-classification",
+                                              "text-generation",
+                                              "translation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-mistral/models/mistral-small-2503/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/o1/2024-12-17",
+                       "name":  "o1",
+                       "version":  "2024-12-17",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/o1/versions/2024-12-17"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-4o/2024-11-20",
+                       "name":  "gpt-4o",
+                       "version":  "2024-11-20",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-4o/versions/2024-11-20"
+                   },
+                   {
+                       "id":  "direct-azure/gpt-4o-mini/2024-07-18",
+                       "name":  "gpt-4o-mini",
+                       "version":  "2024-07-18",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "responses"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/gpt-4o-mini/versions/2024-07-18"
+                   },
+                   {
+                       "id":  "foundry-labs/financial-reports-analysis-v2/1",
+                       "name":  "financial-reports-analysis-v2",
+                       "version":  "1",
+                       "publisher":  "Microsoft",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/financial-reports-analysis-v2/versions/1"
+                   },
+                   {
+                       "id":  "foundry-labs/supply-chain-trade-regulations-v2/1",
+                       "name":  "supply-chain-trade-regulations-v2",
+                       "version":  "1",
+                       "publisher":  "Microsoft",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/supply-chain-trade-regulations-v2/versions/1"
+                   },
+                   {
+                       "id":  "foundry-labs/Muse/5",
+                       "name":  "Muse",
+                       "version":  "5",
+                       "publisher":  "Microsoft",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "image-to-image"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/Muse/versions/5"
+                   },
+                   {
+                       "id":  "direct-azure/Stable-Diffusion-3.5-Large/1",
+                       "name":  "Stable-Diffusion-3.5-Large",
+                       "version":  "1",
+                       "publisher":  "StabilityAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-to-image",
+                                              "image-to-image"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-stabilityai/models/Stable-Diffusion-3.5-Large/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/Stable-Image-Ultra/1",
+                       "name":  "Stable-Image-Ultra",
+                       "version":  "1",
+                       "publisher":  "StabilityAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-to-image"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-stabilityai/models/Stable-Image-Ultra/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/Stable-Image-Core/1",
+                       "name":  "Stable-Image-Core",
+                       "version":  "1",
+                       "publisher":  "StabilityAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "text-to-image"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-stabilityai/models/Stable-Image-Core/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/tsuzumi-7b/2",
+                       "name":  "tsuzumi-7b",
+                       "version":  "2",
+                       "publisher":  "NTT Data",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "ServerlessMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-nttdata/models/tsuzumi-7b/versions/2"
+                   },
+                   {
+                       "id":  "direct-azure/Ministral-3B/1",
+                       "name":  "Ministral-3B",
+                       "version":  "1",
+                       "publisher":  "Mistral AI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-mistral/models/Ministral-3B/versions/1"
+                   },
+                   {
+                       "id":  "foundry-labs/Virchow/2",
+                       "name":  "Virchow",
+                       "version":  "2",
+                       "publisher":  "Paige",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "image-feature-extraction"
+                                          ],
+                       "deploymentOptions":  [
+
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/Virchow/versions/2"
+                   },
+                   {
+                       "id":  "foundry-labs/Virchow2/3",
+                       "name":  "Virchow2",
+                       "version":  "3",
+                       "publisher":  "Paige",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "image-feature-extraction"
+                                          ],
+                       "deploymentOptions":  [
+
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/Virchow2/versions/3"
+                   },
+                   {
+                       "id":  "foundry-labs/Prism/2",
+                       "name":  "Prism",
+                       "version":  "2",
+                       "publisher":  "Paige",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "zero-shot-image-classification"
+                                          ],
+                       "deploymentOptions":  [
+
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/Prism/versions/2"
+                   },
+                   {
+                       "id":  "direct-azure/Cohere-embed-v3-multilingual/1",
+                       "name":  "Cohere-embed-v3-multilingual",
+                       "version":  "1",
+                       "publisher":  "Cohere",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "embeddings"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "ServerlessMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-cohere/models/Cohere-embed-v3-multilingual/versions/1"
+                   },
+                   {
+                       "id":  "foundry-labs/snowflake-arctic-base/1",
+                       "name":  "snowflake-arctic-base",
+                       "version":  "1",
+                       "publisher":  "Snowflake",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "text-generation"
+                                          ],
+                       "deploymentOptions":  [
+
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/snowflake-arctic-base/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/davinci-002/3",
+                       "name":  "davinci-002",
+                       "version":  "3",
+                       "publisher":  "OpenAI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "completions"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "AOAI",
+                                                 "UnifiedEndpointMaaS",
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azure-openai/models/davinci-002/versions/3"
+                   },
+                   {
+                       "id":  "fireworks/FW-Nemotron-Lightning-3.5-30B-A3B/1",
+                       "name":  "FW-Nemotron-Lightning-3.5-30B-A3B",
+                       "version":  "1",
+                       "publisher":  "Fireworks",
+                       "source":  "fireworks",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-fireworks/models/FW-Nemotron-Lightning-3.5-30B-A3B/versions/1"
+                   },
+                   {
+                       "id":  "fireworks/FW-DeepSeek-V4-Flash-0731/1",
+                       "name":  "FW-DeepSeek-V4-Flash-0731",
+                       "version":  "1",
+                       "publisher":  "Fireworks",
+                       "source":  "fireworks",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS",
+                                                 "Serverless API"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-fireworks/models/FW-DeepSeek-V4-Flash-0731/versions/1"
+                   },
+                   {
+                       "id":  "hugging-face/unsloth--kimi-k2.7-code-gguf--ud-q4_k_xl/3",
+                       "name":  "unsloth--kimi-k2.7-code-gguf--ud-q4_k_xl",
+                       "version":  "3",
+                       "publisher":  "Hugging Face",
+                       "source":  "hugging-face",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP",
+                                                 "Managed Compute"
+                                             ],
+                       "assetId":  "azureml://registries/azure-huggingface/models/unsloth--kimi-k2.7-code-gguf--ud-q4_k_xl/versions/3"
+                   },
+                   {
+                       "id":  "hugging-face/unsloth--kimi-k2.6-gguf--ud-q4_k_xl/2",
+                       "name":  "unsloth--kimi-k2.6-gguf--ud-q4_k_xl",
+                       "version":  "2",
+                       "publisher":  "Hugging Face",
+                       "source":  "hugging-face",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP",
+                                                 "Managed Compute"
+                                             ],
+                       "assetId":  "azureml://registries/azure-huggingface/models/unsloth--kimi-k2.6-gguf--ud-q4_k_xl/versions/2"
+                   },
+                   {
+                       "id":  "direct-azure/TimeGPT-1/3",
+                       "name":  "TimeGPT-1",
+                       "version":  "3",
+                       "publisher":  "Nixtla",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "time-series-forecasting"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-nixtla/models/TimeGPT-1/versions/3"
+                   },
+                   {
+                       "id":  "foundry-labs/microsoft-rad-dino/4",
+                       "name":  "microsoft-rad-dino",
+                       "version":  "4",
+                       "publisher":  "Microsoft",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "embeddings"
+                                          ],
+                       "deploymentOptions":  [
+
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/microsoft-rad-dino/versions/4"
+                   },
+                   {
+                       "id":  "direct-azure/TimeGPT-2.1/3",
+                       "name":  "TimeGPT-2.1",
+                       "version":  "3",
+                       "publisher":  "Nixtla",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "time-series-forecasting"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-nixtla/models/TimeGPT-2.1/versions/3"
+                   },
+                   {
+                       "id":  "direct-azure/TimeGPT-1-long-horizon/3",
+                       "name":  "TimeGPT-1-long-horizon",
+                       "version":  "3",
+                       "publisher":  "Nixtla",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "time-series-forecasting"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-nixtla/models/TimeGPT-1-long-horizon/versions/3"
+                   },
+                   {
+                       "id":  "direct-azure/TimeGPT-2-mini/3",
+                       "name":  "TimeGPT-2-mini",
+                       "version":  "3",
+                       "publisher":  "Nixtla",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "time-series-forecasting"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-nixtla/models/TimeGPT-2-mini/versions/3"
+                   },
+                   {
+                       "id":  "hugging-face/nvidia--cosmos3-super/3",
+                       "name":  "nvidia--cosmos3-super",
+                       "version":  "3",
+                       "publisher":  "Hugging Face",
+                       "source":  "hugging-face",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "text-to-image",
+                                              "video-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP",
+                                                 "Managed Compute"
+                                             ],
+                       "assetId":  "azureml://registries/azure-huggingface/models/nvidia--cosmos3-super/versions/3"
+                   },
+                   {
+                       "id":  "hugging-face/nvidia--cosmos3-nano/3",
+                       "name":  "nvidia--cosmos3-nano",
+                       "version":  "3",
+                       "publisher":  "Hugging Face",
+                       "source":  "hugging-face",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "text-to-image",
+                                              "video-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP",
+                                                 "Managed Compute"
+                                             ],
+                       "assetId":  "azureml://registries/azure-huggingface/models/nvidia--cosmos3-nano/versions/3"
+                   },
+                   {
+                       "id":  "hugging-face/nvidia--cosmos3-edge/3",
+                       "name":  "nvidia--cosmos3-edge",
+                       "version":  "3",
+                       "publisher":  "Hugging Face",
+                       "source":  "hugging-face",
+                       "inferenceTasks":  [
+                                              "chat-completion",
+                                              "text-to-image",
+                                              "video-generation"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP",
+                                                 "Managed Compute"
+                                             ],
+                       "assetId":  "azureml://registries/azure-huggingface/models/nvidia--cosmos3-edge/versions/3"
+                   },
+                   {
+                       "id":  "direct-azure/voyage-code-4/1",
+                       "name":  "voyage-code-4",
+                       "version":  "1",
+                       "publisher":  "Voyage AI",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "embeddings"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-voyage/models/voyage-code-4/versions/1"
+                   },
+                   {
+                       "id":  "direct-azure/qwen3.6-35b-a3b/1",
+                       "name":  "qwen3.6-35b-a3b",
+                       "version":  "1",
+                       "publisher":  "Alibaba",
+                       "source":  "direct-azure",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "UnifiedEndpointMaaS"
+                                             ],
+                       "assetId":  "azureml://registries/azureml-alibaba/models/qwen3.6-35b-a3b/versions/1"
+                   },
+                   {
+                       "id":  "hugging-face/qwen--qwen3.8-27b/2",
+                       "name":  "qwen--qwen3.8-27b",
+                       "version":  "2",
+                       "publisher":  "Hugging Face",
+                       "source":  "hugging-face",
+                       "inferenceTasks":  [
+                                              "chat-completion"
+                                          ],
+                       "deploymentOptions":  [
+                                                 "MaaP",
+                                                 "Managed Compute"
+                                             ],
+                       "assetId":  "azureml://registries/azure-huggingface/models/qwen--qwen3.8-27b/versions/2"
+                   },
+                   {
+                       "id":  "foundry-labs/TamGen/4",
+                       "name":  "TamGen",
+                       "version":  "4",
+                       "publisher":  "Microsoft",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "protein-design"
+                                          ],
+                       "deploymentOptions":  [
+
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/TamGen/versions/4"
+                   },
+                   {
+                       "id":  "foundry-labs/gpt2-large/19",
+                       "name":  "gpt2-large",
+                       "version":  "19",
+                       "publisher":  "Community",
+                       "source":  "foundry-labs",
+                       "inferenceTasks":  [
+                                              "text-generation"
+                                          ],
+                       "deploymentOptions":  [
+
+                                             ],
+                       "assetId":  "azureml://registries/azureml/models/gpt2-large/versions/19"
+                   }
+               ]
+}

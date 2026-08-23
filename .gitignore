@@ -1,0 +1,14 @@
+**/node_modules/
+**/dist/
+**/coverage/
+**/test-results/
+**/playwright-report/
+**/*.tsbuildinfo
+api/local.settings.json
+api/.azurite/
+api/data/
+.azure/*
+!.azure/deployment-plan.md
+.env
+.env.*
+!.env.example
