@@ -144,7 +144,7 @@ npm run build
 npm audit
 ```
 
-Current evidence: 62 web unit/property tests, 20 API tests, 12 application workflows, and 3 production PWA device profiles pass. Browser coverage includes desktop, Android, iPhone-sized metadata/layout, PDF/JSON downloads, mobile installation, secure offline cache boundaries, four-region isolation, model/SKU profile isolation, all five technical pricing domains, scenario sharing, no-overflow checks, and zero Axe violations. Both builds and linters pass.
+Current evidence: 62 web unit/property tests, 31 API tests, 14 application workflows, and 3 production PWA device profiles pass. Browser coverage includes requester/approver access flows, desktop, Android, iPhone-sized metadata/layout, PDF/JSON downloads, mobile installation, secure offline cache boundaries, four-region isolation, model/SKU profile isolation, all five technical pricing domains, scenario sharing, no-overflow checks, and zero Axe violations. Both builds and linters pass.
 
 ## Rate policy
 
@@ -176,6 +176,36 @@ Unmatched definitions remain explicitly unpriced. These counts validate the conf
 ## Access management
 
 Production uses the managed Microsoft Entra provider and Static Web Apps invitations. It does not require a custom app registration, client secret, Microsoft Graph permission, tenant admin consent, or role-source Function.
+
+### Request and approval workflow
+
+1. A user signs in with Microsoft Entra ID. If they do not have `costlab-user`, the 403 response displays **Request access** instead of a dead-end denial page.
+2. The requester confirms their authenticated email and optionally supplies a business reason. One private record per Static Web Apps user is written under `access-requests/` in the existing Blob container.
+3. Users with `costlab-admin` see an access-request shield in the application header. A badge shows pending requests.
+4. **Approve** creates a 24-hour native Static Web Apps invitation for `costlab-user`; **Reject** records the decision without granting access.
+5. The requester refreshes their status, selects **Accept approved access**, and follows the invitation link. They may need to sign out and back in once for the new role to appear.
+
+Security boundaries:
+
+- The SWA edge permits the self-service endpoint only to `authenticated`; queue and decision endpoints require `costlab-admin`.
+- Azure Functions independently decode `x-ms-client-principal` and repeat authenticated/admin role checks.
+- The Function managed identity receives only `Microsoft.Web/staticSites/read` and `Microsoft.Web/staticSites/createinvitation/action`, assigned at the one Static Web App.
+- Invitation URLs are stored in private Blob storage and returned only to the matching requester. The admin queue never returns invitation bearer URLs.
+- Request logs contain only a one-way request ID and timestamps, not email addresses or business reasons.
+- This workflow reuses existing resources and does not add a billable Azure service.
+
+The current operator has both `costlab-user` and `costlab-admin`. To grant another owner approval rights after they have accepted application access:
+
+```powershell
+az staticwebapp users update `
+  --name swa-foundry-cost-rm6kp7ehyjzk `
+  --resource-group rg-foundry-cost-prod `
+  --authentication-provider AAD `
+  --user-details <owner-email> `
+  --roles costlab-user,costlab-admin
+```
+
+The CLI invitation remains an operational fallback if the request service is unavailable:
 
 Invite each colleague explicitly to the `costlab-user` role after deployment:
 
@@ -215,7 +245,7 @@ Provisioning requires permission to create a custom role definition and assignme
 
 The validated production deployment is available at [Foundry Cost Lab](https://salmon-plant-01ce70c0f.7.azurestaticapps.net/). The linked API health endpoint reports every configured rate card and catalog. Anonymous calculator and data routes redirect to managed Entra sign-in; `/api/health` is intentionally anonymous.
 
-The current operator accepted a `costlab-user` invitation and verified the calculator in managed Microsoft Edge. Add colleagues with individual invitations as described above. The workspace is not a Git repository, so the included CI and deployment workflows remain inactive.
+The current operator accepted a `costlab-user` invitation, holds `costlab-admin`, and verified the calculator in managed Microsoft Edge. The source is maintained at [ritwickmicrosoft/foundry-cost-lab](https://github.com/ritwickmicrosoft/foundry-cost-lab). The deploy workflow still requires its documented GitHub environment and OIDC configuration before it can publish autonomously.
 
 ### Production operations
 

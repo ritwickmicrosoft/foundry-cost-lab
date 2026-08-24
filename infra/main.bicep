@@ -41,6 +41,7 @@ var logAnalyticsName = 'log-foundry-cost-${shortToken}'
 var applicationInsightsName = 'appi-foundry-cost-${shortToken}'
 var actionGroupName = 'ag-foundry-cost-${shortToken}'
 var staticWebAppName = 'swa-foundry-cost-${shortToken}'
+var accessInviterRoleName = '68890e8b-8860-4a0a-9ad7-4383cdd2f80c'
 var deploymentStorageContainerName = 'app-package-${shortToken}'
 var rateStorageContainerName = 'rate-cards'
 var tags = {
@@ -96,6 +97,29 @@ resource catalogReaderAssignment 'Microsoft.Authorization/roleAssignments@2022-0
     principalId: functionIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
     description: 'Allows the daily Function job to read only regional Foundry model metadata.'
+  }
+}
+
+resource accessInviterRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
+  name: accessInviterRoleName
+  properties: {
+    roleName: 'Foundry Cost Lab Access Inviter'
+    description: 'Reads the Foundry Cost Lab Static Web App and creates short-lived user role invitations.'
+    type: 'CustomRole'
+    permissions: [
+      {
+        actions: [
+          'Microsoft.Web/staticSites/read'
+          'Microsoft.Web/staticSites/createinvitation/action'
+        ]
+        notActions: []
+        dataActions: []
+        notDataActions: []
+      }
+    ]
+    assignableScopes: [
+      subscription().id
+    ]
   }
 }
 
@@ -224,6 +248,9 @@ var functionAppSettings = {
   FUNCTIONS_EXTENSION_VERSION: '~4'
   AZURE_CLIENT_ID: functionIdentity.outputs.clientId
   AZURE_SUBSCRIPTION_ID: subscription().subscriptionId
+  AZURE_RESOURCE_GROUP: resourceGroupName
+  STATIC_WEB_APP_NAME: staticWebAppName
+  ACCESS_INVITATION_HOURS: '24'
   RATE_STORAGE_ACCOUNT_URL: storage.outputs.primaryBlobEndpoint
   RATE_STORAGE_CONTAINER: rateStorageContainerName
 }
@@ -300,6 +327,16 @@ module staticWebApp 'br/public:avm/res/web/static-site:0.9.5' = {
       location: location
     }
   }
+}
+
+module accessInviterAssignment './access-inviter-role-assignment.bicep' = {
+  scope: az.resourceGroup(resourceGroupName)
+  params: {
+    staticWebAppName: staticWebAppName
+    principalId: functionIdentity.outputs.principalId
+    roleDefinitionId: accessInviterRole.id
+  }
+  dependsOn: [staticWebApp]
 }
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = applicationInsights.outputs.connectionString

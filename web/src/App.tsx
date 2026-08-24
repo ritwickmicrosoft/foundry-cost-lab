@@ -1,6 +1,7 @@
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { ConfigPanel } from './components/ConfigPanel'
+import { AccessRequestsDialog } from './components/AccessRequestsDialog'
 import { PwaControls } from './components/PwaControls'
 import { ResultsPanel } from './components/ResultsPanel'
 import { ScenarioActions, ScenarioComparison } from './components/ScenarioManager'
@@ -58,6 +59,7 @@ function App() {
               <span>{loading ? 'Loading rates' : usingFallback ? 'Built-in rates' : 'Synced rates'}</span>
               <strong>{rateCard.asOf}</strong>
             </div>
+            <AccessRequestsDialog />
             <PwaControls />
             <ScenarioActions config={config} result={result} rateCard={rateCard} />
           </div>

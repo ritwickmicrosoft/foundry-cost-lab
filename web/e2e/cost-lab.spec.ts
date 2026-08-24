@@ -277,6 +277,93 @@ test('mounts with an in-memory scenario store when localStorage is blocked', asy
   await expect(page.getByText('Scenarios will last for this session only.')).toBeVisible()
 })
 
+test('lets an authenticated denied user submit an access request', async ({ page }) => {
+  let requestSubmitted = false
+  await page.route('**/.auth/me', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      clientPrincipal: {
+        identityProvider: 'aad',
+        userId: 'manager-user-id',
+        userDetails: 'ahmed@example.com',
+        userRoles: ['anonymous', 'authenticated'],
+      },
+    }),
+  }))
+  await page.route('**/api/access/request', async (route) => {
+    if (route.request().method() === 'POST') {
+      requestSubmitted = true
+      await route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'pending',
+          reason: 'Manager review',
+          requestedAt: '2026-08-24T10:00:00Z',
+          updatedAt: '2026-08-24T10:00:00Z',
+        }),
+      })
+      return
+    }
+    await route.fulfill({ status: 404, contentType: 'application/json', body: '{"error":"No request"}' })
+  })
+
+  await page.goto('/request-access.html')
+  await expect(page.getByText('Signed in as ahmed@example.com')).toBeVisible()
+  await page.getByLabel(/Business reason/).fill('Manager review')
+  await page.getByRole('button', { name: 'Request access' }).click()
+
+  expect(requestSubmitted).toBe(true)
+  await expect(page.getByText(/pending owner approval/)).toBeVisible()
+})
+
+test('shows the access queue only to admins and approves a pending request', async ({ page }) => {
+  let status: 'pending' | 'approved' = 'pending'
+  await page.route('**/.auth/me', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      clientPrincipal: {
+        identityProvider: 'aad',
+        userId: 'owner-user-id',
+        userDetails: 'owner@example.com',
+        userRoles: ['anonymous', 'authenticated', 'costlab-user', 'costlab-admin'],
+      },
+    }),
+  }))
+  await page.route(/\/api\/access\/requests(?:\/[^/?]+)?(?:\?.*)?$/, async (route) => {
+    if (route.request().method() === 'POST') status = 'approved'
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: route.request().method() === 'GET'
+        ? JSON.stringify({ requests: [{
+            requestId: 'aaaaaaaaaaaaaaaaaaaaaaaa',
+            userDetails: 'ahmed@example.com',
+            reason: 'Manager review',
+            status,
+            requestedAt: '2026-08-24T10:00:00Z',
+            updatedAt: '2026-08-24T10:00:00Z',
+          }] })
+        : JSON.stringify({
+            requestId: 'aaaaaaaaaaaaaaaaaaaaaaaa',
+            userDetails: 'ahmed@example.com',
+            reason: 'Manager review',
+            status,
+            requestedAt: '2026-08-24T10:00:00Z',
+            updatedAt: '2026-08-24T10:00:00Z',
+          }),
+    })
+  })
+
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Access requests, 1 pending' }).click()
+  await expect(page.getByRole('dialog')).toContainText('ahmed@example.com')
+  await page.getByRole('button', { name: 'Approve ahmed@example.com' }).click()
+  await expect(page.locator('.access-request-status--approved')).toHaveText('approved')
+})
+
 test('supports four regions without borrowing Canada Central fallback prices', async ({ page }) => {
   const rateRequests: string[] = []
   page.on('request', (request) => {

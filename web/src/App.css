@@ -207,6 +207,27 @@
   color: var(--cp-danger);
 }
 
+.access-requests-trigger {
+  position: relative;
+}
+
+.access-requests-trigger__count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+  color: #ffffff;
+  background: var(--cp-danger);
+  border: 2px solid var(--cp-panel-strong);
+  border-radius: 9px;
+  font-size: 9px;
+  font-weight: 750;
+}
+
 .notice-bar {
   min-height: 36px;
   justify-content: center;
@@ -1631,6 +1652,61 @@
   display: grid;
 }
 
+.access-dialog {
+  width: min(680px, calc(100vw - 32px));
+}
+
+.access-dialog__header-actions,
+.access-request-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.access-request-list {
+  max-height: min(55vh, 520px);
+  overflow: auto;
+  border-top: 1px solid var(--cp-border);
+}
+
+.access-request-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--cp-border);
+}
+
+.access-request-row > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.access-request-row strong,
+.access-request-row span,
+.access-request-row small {
+  overflow-wrap: anywhere;
+}
+
+.access-request-row span,
+.access-request-row small {
+  color: var(--cp-text-muted);
+  font-size: 11px;
+}
+
+.access-request-status {
+  padding: 4px 8px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.access-request-status--approved { border-color: var(--cp-success); }
+.access-request-status--rejected { border-color: var(--cp-danger); }
+
 .scenario-row {
   min-height: 62px;
   display: flex;
@@ -2009,6 +2085,14 @@
   .scenario-file-actions {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .access-request-row {
+    grid-template-columns: 1fr;
+  }
+
+  .access-request-row__actions {
+    justify-content: flex-end;
   }
 }
 

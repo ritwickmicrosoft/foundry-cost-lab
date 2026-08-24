@@ -5,6 +5,9 @@
     "FUNCTIONS_WORKER_RUNTIME": "node",
     "AZURE_FUNCTIONS_ENVIRONMENT": "Development",
     "AZURE_SUBSCRIPTION_ID": "00000000-0000-0000-0000-000000000000",
+    "AZURE_RESOURCE_GROUP": "rg-foundry-cost-dev",
+    "STATIC_WEB_APP_NAME": "swa-foundry-cost-dev",
+    "ACCESS_INVITATION_HOURS": "24",
     "RATE_STORAGE_ACCOUNT_URL": "",
     "RATE_STORAGE_CONTAINER": "rate-cards"
   }

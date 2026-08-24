@@ -10,6 +10,19 @@ const config = {
     { route: '/.auth/login/twitter', statusCode: 404 },
     { route: '/api/health', methods: ['GET'], allowedRoles: ['anonymous'] },
     { route: '/forbidden.html', allowedRoles: ['anonymous'] },
+    { route: '/request-access.html', allowedRoles: ['authenticated'] },
+    { route: '/access-request.js', allowedRoles: ['authenticated'] },
+    { route: '/favicon.svg', allowedRoles: ['authenticated'] },
+    {
+      route: '/api/access/request',
+      methods: ['GET', 'POST'],
+      allowedRoles: ['authenticated'],
+    },
+    {
+      route: '/api/access/requests*',
+      methods: ['GET', 'POST'],
+      allowedRoles: ['costlab-admin'],
+    },
     {
       route: '/sw.js',
       allowedRoles: ['costlab-user'],
@@ -31,7 +44,7 @@ const config = {
       statusCode: 302,
     },
     403: {
-      rewrite: '/forbidden.html',
+      rewrite: '/request-access.html',
       statusCode: 403,
     },
   },

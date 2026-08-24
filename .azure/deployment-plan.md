@@ -17,6 +17,7 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 - Azure Blob Storage for current and historical rate-card and catalog snapshots
 - Azure Static Web Apps Standard hosting
 - Managed Entra authentication and named-user invitation roles
+- Self-service authenticated access requests with costlab-admin approval and short-lived native SWA invitations
 - Managed identity and least-privilege role assignments
 - Azure Monitor action group and failed/missed morning-sync alerts
 - Safe scenario export/import for colleague handoff
@@ -59,6 +60,7 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 - Model pricing is keyed by model ID and deployment SKU. Exact Retail meters take precedence; Marketplace, private-offer, and managed-compute fallbacks require a matching source- and date-stamped profile and never carry across SKUs.
 - Pricing readiness exposes processing geography, required model dimensions, and independent agent-tool, RAG, observability, networking, and disaster-recovery coverage before an estimate can be treated as approval-ready.
 - PWA installation reuses the existing Static Web Apps service. The worker precaches only versioned static assets and never caches HTML navigation, API, or authentication responses; managed Entra authorization remains mandatory at launch.
+- Access requests reuse private Blob storage. Requester endpoints require `authenticated`, approval endpoints require `costlab-admin`, Functions repeat role checks, and the managed identity receives only Static Web App read plus create-invitation at the target site.
 - PDF reports include known totals, unpriced decisions, formulas, assumptions, and rate provenance. PDF libraries are lazy-loaded and excluded from service-worker precache, adding no backend or Azure resource.
 - Disaster recovery uses explicit secondary capacity per service. It does not combine with the legacy blanket secondary-region multiplier.
 - All four rate cards are independently synced and stored under region-specific current/history paths. An unsynchronized region remains explicitly unpriced and never inherits another region's fallback values.
@@ -80,8 +82,8 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 ## Verification Evidence
 
 - Web unit/property suite: 62 passing tests
-- Functions/API suite: 20 passing tests
-- Chromium application workflow suite: 12 passing tests across desktop and mobile
+- Functions/API suite: 31 passing tests
+- Chromium application workflow suite: 14 passing tests across desktop and mobile
 - Production PWA suite: 3 passing device profiles covering desktop, Android, and iPhone-sized metadata/layout
 - Automated accessibility scan: zero detected violations
 - Full cost-model recalculation: under 100 ms p95 acceptance test
@@ -108,9 +110,9 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 
 ## Release Blocker
 
-No blocker remains for the current operator. Ritwick Dutta accepted a named `costlab-user` invitation and verified the calculator in managed Microsoft Edge. Each colleague still requires an invitation addressed to their email; no colleague email or UPN has been provided.
+No blocker remains for the current operator. Ritwick Dutta holds `costlab-user,costlab-admin` and verified the calculator in managed Microsoft Edge. Authenticated colleagues can now request access from the denial page and receive an owner-approved native invitation.
 
-The Azure extension context is signed into a different tenant, so deployment and verification use the approved Azure CLI/azd context. The workspace is not a Git repository; GitHub workflows remain optional for this direct `azd` rollout and can be enabled later by initializing and pushing to an approved remote.
+The Azure extension context is signed into a different tenant, so deployment and verification use the approved Azure CLI/azd context. Source is pushed to `ritwickmicrosoft/foundry-cost-lab` on `main`; GitHub deployment remains optional until its environment and OIDC settings are configured.
 
 ## Role Assignment Verification
 
@@ -132,11 +134,14 @@ The Azure extension context is signed into a different tenant, so deployment and
 - Four-region update: deployed `2026-08-23` UTC with independent Canada Central, Canada East, East US, and East US 2 pricing cards and Foundry catalogs
 - Installable PWA update: deployed `2026-08-23` UTC with Microsoft-branded install icons, standalone manifest, native install/update controls, and an asset-only service worker; no Azure resource was added
 - PDF export update: deployed `2026-08-23` UTC; the header now downloads a multipage audit report, while Backup JSON and Import JSON remain in Scenarios for editable handoff. Generation is browser-only and added no Azure resource or backend consumption
+- Access request update: deployed `2026-08-24` UTC with authenticated self-service requests, private Blob queue, `costlab-admin` approvals, 24-hour native SWA invitations, direct-backend spoof protection, and invitation-only managed-identity RBAC
 - Static Web Apps: `https://salmon-plant-01ce70c0f.7.azurestaticapps.net/` (`Ready`)
 - Linked Functions API: `https://func-foundry-cost-rm6kp7ehyjzk.azurewebsites.net/` (`Running`)
 - Anonymous root request: `302` to the Entra sign-in flow
 - Anonymous `/.auth/me`: `200` with a null principal
 - Managed AAD invitation: accepted for the current operator with `costlab-user`; calculator opened successfully in compliant Microsoft Edge
+- Owner role: current operator holds `costlab-user,costlab-admin`; Ahmed completed the live request/approve/accept flow and verified `costlab-user` in `/.auth/me` before opening the app
+- Access RBAC: custom role `Foundry Cost Lab Access Inviter` contains only `Microsoft.Web/staticSites/read` and `Microsoft.Web/staticSites/createinvitation/action`; deterministic assignment `e7c2d6ef-b2cf-5371-9bd0-0953f3ff7809` is scoped to the one production Static Web App and converged with Bicep
 - Access incident resolution: the original custom flow first required admin consent, then exposed tenant error `530004` for the guest identity. Managed AAD invitations avoid both dependencies; the current operator accepted `costlab-user` and opened the calculator in compliant Microsoft Edge.
 - Custom-auth cleanup: no Graph permissions, role-source Function, `AAD_CLIENT_ID`, or `AAD_CLIENT_SECRET` remain in the deployed application. The retained legacy app object has zero credentials and zero API permissions.
 - Protected rate and catalog routes: `302` for anonymous callers
@@ -155,7 +160,7 @@ The Azure extension context is signed into a different tenant, so deployment and
 
 ## Section 7: Validation Proof
 
-Validation refreshed: `2026-08-23 01:40:21 -04:00`.
+Validation refreshed: `2026-08-24 17:42:07 -04:00`.
 
 | Check | Command or evidence | Result |
 |---|---|---|
@@ -166,8 +171,8 @@ Validation refreshed: `2026-08-23 01:40:21 -04:00`.
 | Subscription/location | User confirmation + Bicep compilation | Passed: `Ritwick - Demo`, East US 2 |
 | Provision preview | `azd provision --preview --no-prompt` | Passed: existing resources only show provider-normalization drift; no changes applied and code-only deployment selected |
 | Web verification | `npm --prefix web test`, `lint`, `build` | Passed: 62 tests, lint, production bundle |
-| API verification | `npm --prefix api test`, `lint`, `build` | Passed: 20 tests, strict typecheck, production build |
-| Browser verification | `npm --prefix web run test:e2e` | Passed: 12 Chromium workflows, PDF/JSON downloads, mobile install prompt, model/SKU isolation, technical-domain coverage, and zero Axe violations |
+| API verification | `npm --prefix api test`, `lint`, `build` | Passed: 31 tests, principal parsing, private request storage, invitation ARM client, workflow, handler authorization, strict typecheck, and production build |
+| Browser verification | `npm --prefix web run test:e2e` | Passed: 14 Chromium workflows, requester/admin approval, PDF/JSON downloads, mobile install prompt, model/SKU isolation, technical-domain coverage, and zero Axe violations |
 | PWA verification | `npm --prefix web run test:pwa` | Passed: manifest/icons, service-worker registration, desktop/Android/iPhone-sized layouts, static asset caching, and network-only navigation/API/auth |
 | Regional grounding | Production synchronizers + Azure Retail Prices API + Foundry ARM inventory | Passed: independent Canada Central, Canada East, East US, and East US 2 cards; 59/53/59/58 exact meter specs and 167/156/168/203 regional models |
 | Bicep | Azure Bicep MCP + `az bicep build-params` with process-scoped environment values | Passed: all modules and parameters compile with no diagnostics |
