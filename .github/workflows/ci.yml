@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: azure/setup-bicep@v2
+      - uses: anthony-c-martin/setup-bicep@v1
       - run: bicep build infra/main.bicep
       - run: bicep build-params infra/main.bicepparam --outfile /tmp/main.parameters.json
         env:
