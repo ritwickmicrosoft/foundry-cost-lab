@@ -6,7 +6,7 @@ param staticWebAppName string
 @description('Managed identity principal that creates approved invitations.')
 param principalId string
 
-@description('Subscription custom role containing Static Web App read and create-invitation actions.')
+@description('Subscription custom role containing Static Web App read and invitation-only action permissions.')
 param roleDefinitionId string
 
 resource staticWebApp 'Microsoft.Web/staticSites@2024-11-01' existing = {

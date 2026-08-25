@@ -8,7 +8,7 @@ const input = {
 }
 
 describe('approval email message', () => {
-  it('includes the invitation, application link, expiry, feedback request, and reply address', () => {
+  it('includes automatic-completion guidance, fallback link, expiry, and feedback request', () => {
     const message = buildApprovalEmailMessage(
       input,
       'DoNotReply@example.azurecomm.net',
@@ -16,11 +16,11 @@ describe('approval email message', () => {
     )
 
     expect(message.content.subject).toBe('Welcome to Foundry Cost Lab - Access Approved')
-    expect(message.content.plainText).toContain(input.invitationUrl)
     expect(message.content.plainText).toContain('https://foundry.example.test/')
+    expect(message.content.plainText).toContain(input.invitationUrl)
     expect(message.content.plainText).toContain('Aug 24, 2026')
     expect(message.content.plainText).toContain('genuinely value your candid feedback')
-    expect(message.content.html).toContain('Accept access')
+    expect(message.content.html).toContain('Complete access')
     expect(message.content.html).not.toContain('<private>')
     expect(message.recipients.to).toEqual([{ address: input.recipient }])
     expect(message.replyTo).toEqual([{

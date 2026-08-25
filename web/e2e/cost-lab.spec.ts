@@ -318,6 +318,45 @@ test('lets an authenticated denied user submit an access request', async ({ page
   await expect(page.getByText(/pending owner approval/)).toBeVisible()
 })
 
+test('completes the approved invitation automatically and opens the app', async ({ page }) => {
+  let principalReads = 0
+  await page.route('**/.auth/me', (route) => {
+    principalReads += 1
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        clientPrincipal: {
+          identityProvider: 'aad',
+          userId: 'manager-user-id',
+          userDetails: 'ahmed@example.com',
+          userRoles: principalReads > 1
+            ? ['anonymous', 'authenticated', 'costlab-user']
+            : ['anonymous', 'authenticated'],
+        },
+      }),
+    })
+  })
+  await page.route('**/api/access/request', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      status: 'approved',
+      reason: 'Manager review',
+      requestedAt: '2026-08-24T10:00:00Z',
+      updatedAt: '2026-08-24T10:05:00Z',
+      invitationUrl: 'http://127.0.0.1:5173/.auth/invitations/accept?token=safe-test-token',
+      invitationExpiresOn: '2026-08-25T10:05:00Z',
+    }),
+  }))
+  await page.goto('/request-access.html')
+  await expect(page).toHaveURL(/\/\.auth\/invitations\/accept\?token=safe-test-token/)
+
+  await page.goto('/request-access.html')
+  await expect(page).toHaveURL('http://127.0.0.1:5173/', { timeout: 8_000 })
+  expect(principalReads).toBeGreaterThanOrEqual(2)
+})
+
 test('shows the access queue only to admins and approves a pending request', async ({ page }) => {
   let status: 'pending' | 'approved' = 'pending'
   await page.route('**/.auth/me', (route) => route.fulfill({

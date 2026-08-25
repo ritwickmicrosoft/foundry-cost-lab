@@ -33,9 +33,9 @@ All figures use native CAD retail prices returned by Azure's Retail Prices API. 
 
 ```mermaid
 flowchart LR
-  User[Invited CSA] --> SWA[Azure Static Web Apps Standard]
+  User[Authenticated requester] --> SWA[Azure Static Web Apps Standard]
   SWA -->|/api/rates and /api/catalog| API[Azure Functions Flex Consumption]
-  SWA -->|managed Entra auth and invitation role| Identity[Static Web Apps identity]
+  SWA -->|managed Entra auth and auto-completed invitation| Identity[Static Web Apps identity]
   API -->|managed identity| Blob[(Blob Storage)]
   API -->|managed identity after owner approval| ACS[Azure Communication Services Email]
   ACS --> ManagedDomain[Azure-managed sender domain]
@@ -146,7 +146,7 @@ npm run build
 npm audit
 ```
 
-Current evidence: 62 web unit/property tests, 35 API tests, 14 application workflows, and 3 production PWA device profiles pass. Browser coverage includes requester/approver access flows, desktop, Android, iPhone-sized metadata/layout, PDF/JSON downloads, mobile installation, secure offline cache boundaries, four-region isolation, model/SKU profile isolation, all five technical pricing domains, scenario sharing, no-overflow checks, and zero Axe violations. Both builds and linters pass.
+Current evidence: 62 web unit/property tests, 36 API tests, 15 application workflows, and 3 production PWA device profiles pass. Browser coverage includes automatic invitation completion, requester/approver access flows, desktop, Android, iPhone-sized metadata/layout, PDF/JSON downloads, mobile installation, secure offline cache boundaries, four-region isolation, model/SKU profile isolation, all five technical pricing domains, scenario sharing, no-overflow checks, and zero Axe violations. Both builds and linters pass.
 
 ## Rate policy
 
@@ -177,32 +177,32 @@ Unmatched definitions remain explicitly unpriced. These counts validate the conf
 
 ## Access management
 
-Production uses the managed Microsoft Entra provider and Static Web Apps invitations. It does not require a custom app registration, client secret, Microsoft Graph permission, tenant admin consent, or role-source Function.
+Production uses the managed Microsoft Entra provider and native Static Web Apps invitations. It does not require a custom app registration, client secret, Microsoft Graph permission, tenant admin consent, or role-source Function.
 
 ### Request and approval workflow
 
 1. A user signs in with Microsoft Entra ID. If they do not have `costlab-user`, the 403 response displays **Request access** instead of a dead-end denial page.
 2. The requester confirms their authenticated email and optionally supplies a business reason. One private record per Static Web Apps user is written under `access-requests/` in the existing Blob container.
 3. Users with `costlab-admin` see an access-request shield in the application header. A badge shows pending requests.
-4. **Approve** creates and privately persists a 24-hour native Static Web Apps invitation for `costlab-user`; **Reject** records the decision without granting access.
-5. After approval is durable, the Function sends a welcome email containing the acceptance link, application link, expiry, and feedback request through Azure Communication Services Email. Repeated approval of the same active invitation does not send a duplicate email.
-6. If email is delayed or fails, approval remains valid. The requester can refresh the request page, select **Accept approved access**, and use the privately returned invitation. They may need to sign out and back in once for the new role to appear.
+4. **Approve** creates and privately persists a 24-hour `costlab-user` invitation; **Reject** records the decision without granting access.
+5. The requester page polls every five seconds and follows the approved invitation automatically with the already signed-in Microsoft account. A **Complete access** link remains only as a fallback if the browser interrupts SSO.
+6. After approval is durable, the Function sends a welcome email containing the same completion link, expiry, application link, and feedback request. Repeated approval does not create or email twice.
 
 Security boundaries:
 
 - The SWA edge permits the self-service endpoint only to `authenticated`; queue and decision endpoints require `costlab-admin`.
 - Azure Functions independently decode `x-ms-client-principal` and repeat authenticated/admin role checks.
-- The Function managed identity receives only `Microsoft.Web/staticSites/read` and `Microsoft.Web/staticSites/createinvitation/action`, assigned at the one Static Web App.
+- The Function managed identity receives Static Web App read plus `Microsoft.Web/staticSites/*/action` at the one target app. Every currently published non-invitation action is explicitly excluded; the wildcard bridges Azure's published `createinvitation` versus enforced `createUserInvitation` action-name mismatch.
 - The same identity receives `Communication and Email Service Owner` only at the one Communication Services resource. Email uses Entra tokens; no ACS access key or connection string is stored.
-- Invitation URLs are stored in private Blob storage and returned only to the matching requester. The admin queue never returns invitation bearer URLs.
+- Invitation bearer URLs are stored only in private Blob storage and returned only to the matching requester. The admin queue never returns them.
 - Request logs contain only a one-way request ID and timestamps, not email addresses, business reasons, or invitation URLs. The owner queue receives only sanitized delivery status and error codes.
-- The approval record is written before email is attempted. Delivery failure is recorded as `failed` and never rolls back access approval; the request page remains the operational fallback.
+- The invitation and approval record are persisted before email is attempted. Delivery failure is recorded as `failed` and never blocks requester-page completion.
 
 Approval email uses one free `AzureManagedDomain` linked to one global Communication Services resource, with data location `United States`, fixed `DoNotReply` sender identity, disabled engagement tracking, and `ritwickdutta@microsoft.com` as the default reply-to address. Azure-managed sender domains cannot be personalized.
 
 The grounded East US 2 native-CAD Retail meters are CAD `$0.0004` per sent email and CAD `$0.0002/MB` transferred, effective `2023-04-01`. At 100 small approvals, send charges are approximately CAD `$0.04` plus negligible transfer. The Azure-managed domain is intentionally for low volume: 5 emails/minute and 10 emails/hour, with no quota increase available. The request-page fallback protects access when that limit or any transient delivery failure is encountered.
 
-The current operator has both `costlab-user` and `costlab-admin`. To grant another owner approval rights after they have accepted application access:
+The current operator has both `costlab-user` and `costlab-admin`. To grant another owner approval rights after they have received application access:
 
 ```powershell
 az staticwebapp users update `
@@ -215,8 +215,6 @@ az staticwebapp users update `
 
 The CLI invitation remains an operational fallback if the request service is unavailable:
 
-Invite each colleague explicitly to the `costlab-user` role after deployment:
-
 ```powershell
 az staticwebapp users invite `
   --name swa-foundry-cost-rm6kp7ehyjzk `
@@ -228,7 +226,7 @@ az staticwebapp users invite `
   --invitation-expiration-in-hours 24
 ```
 
-Send the returned invitation link only to the named recipient. The link expires, but the accepted role persists until an operator removes it. Microsoft Conditional Access still applies during acceptance; Microsoft users should open the link in a supported browser on a compliant device.
+Send the returned link only to the named recipient. Microsoft Conditional Access still applies while the page completes access.
 
 The header **Export PDF** action creates a shareable, multipage CAD estimate containing scenario inputs, tier totals, detailed monthly costs, unpriced decisions, rate provenance, formulas, assumptions, disclaimers, and page numbers. PDF is a read-only report and cannot be re-imported.
 
@@ -281,7 +279,7 @@ GitHub is optional for a one-off local `azd` deployment. To use the supplied CI/
 
 Share the Static Web Apps URL only after access and health checks pass. Ask the colleague to verify:
 
-- An invited user's Entra sign-in succeeds and a non-invited user is denied.
+- An approved user's Entra sign-in succeeds and an unapproved user is denied.
 - Canada Central, Canada East, East US, and East US 2 show synchronized rates and the expected regional model-availability labels.
 - Lean POC and Production presets communicate incomplete assumptions clearly.
 - Model-source filters, Foundry services, Hosted Agents, and Standard Agent Setup inputs match their architecture workflow.

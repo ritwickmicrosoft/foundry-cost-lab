@@ -46,10 +46,12 @@ export function buildApprovalEmailMessage(
     '',
     'Welcome to Foundry Cost Lab. Your access request has been approved.',
     '',
-    `Accept your access before ${formattedExpiry}:`,
+    'If the request page is still open, it will complete access automatically.',
+    '',
+    `Otherwise, complete access before ${formattedExpiry}:`,
     invitationUrl.toString(),
     '',
-    'After accepting, open Foundry Cost Lab and sign in with the same Microsoft account:',
+    'After completion, open Foundry Cost Lab:',
     applicationUrl.toString(),
     '',
     "I'd genuinely value your candid feedback - what works well, what feels confusing, and what could be improved. Your perspective will help me learn and continue improving the app so it better supports our team and Microsoft's success.",
@@ -71,14 +73,14 @@ export function buildApprovalEmailMessage(
         <tr><td style="padding:4px 28px 28px">
           <h1 style="font-size:24px;margin:12px 0">Your access is approved</h1>
           <p style="line-height:1.55">Welcome to <strong>Foundry Cost Lab</strong>. Your access request has been approved.</p>
-          <p style="line-height:1.55">Accept the invitation before <strong>${escapeHtml(formattedExpiry)}</strong>, then sign in with the same Microsoft account.</p>
-          <p style="margin:24px 0"><a href="${safeInvitationUrl}" style="display:inline-block;background:#b11f4b;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:4px;font-weight:700">Accept access</a></p>
-          <p style="line-height:1.55">After accepting, <a href="${safeAppUrl}" style="color:#8a1538">open Foundry Cost Lab</a>.</p>
+          <p style="line-height:1.55">If the request page is still open, it will complete access automatically. Otherwise, use this link before <strong>${escapeHtml(formattedExpiry)}</strong>.</p>
+          <p style="margin:24px 0"><a href="${safeInvitationUrl}" style="display:inline-block;background:#b11f4b;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:4px;font-weight:700">Complete access</a></p>
+          <p style="line-height:1.55">After completion, <a href="${safeAppUrl}" style="color:#8a1538">open Foundry Cost Lab</a>.</p>
           <p style="line-height:1.55">I'd genuinely value your candid feedback - what works well, what feels confusing, and what could be improved. Your perspective will help me learn and continue improving the app so it better supports our team and Microsoft's success.</p>
           <p style="line-height:1.55">Thank you for trying it out.</p>
           <p style="line-height:1.55">Best,<br>Ritwick</p>
         </td></tr>
-        <tr><td style="padding:16px 28px;background:#f5f5f5;color:#5c5c5c;font-size:12px">If the button does not work, reopen the Foundry Cost Lab request page to retrieve the approved invitation.</td></tr>
+        <tr><td style="padding:16px 28px;background:#f5f5f5;color:#5c5c5c;font-size:12px">Use the same Microsoft account that submitted the access request.</td></tr>
       </table>
     </td></tr>
   </table>

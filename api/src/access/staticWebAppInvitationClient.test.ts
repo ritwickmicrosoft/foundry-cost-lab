@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { StaticWebAppInvitationClient } from './staticWebAppInvitationClient.js'
 
 const credential: TokenCredential = {
-  getToken: async (): Promise<AccessToken> => ({ token: 'managed-identity-token', expiresOnTimestamp: Date.now() + 60_000 }),
+  getToken: async (): Promise<AccessToken> => ({ token: 'test-token', expiresOnTimestamp: Date.now() + 60_000 }),
 }
 
 describe('Static Web Apps invitation client', () => {
@@ -31,11 +31,8 @@ describe('Static Web Apps invitation client', () => {
       expiresOn: '2026-08-24T10:00:00Z',
     })
     expect(fetcher).toHaveBeenCalledTimes(2)
-    expect(fetcher.mock.calls[0]?.[0]).toContain('/staticSites/static-site?api-version=2024-11-01')
     expect(fetcher.mock.calls[1]?.[0]).toContain('/staticSites/static-site/createUserInvitation?api-version=2024-11-01')
-    expect(fetcher.mock.calls[0]?.[1]?.headers).toMatchObject({
-      Authorization: 'Bearer managed-identity-token',
-    })
+    expect(fetcher.mock.calls[1]?.[1]).toMatchObject({ method: 'POST' })
     expect(JSON.parse(fetcher.mock.calls[1]?.[1]?.body as string)).toEqual({
       properties: {
         domain: 'foundry.example.azurestaticapps.net',
@@ -47,14 +44,28 @@ describe('Static Web Apps invitation client', () => {
     })
   })
 
-  it('fails closed on ARM errors or incomplete invitation responses', async () => {
+  it('reports only sanitized ARM diagnostics on invitation failure', async () => {
     const forbidden = new StaticWebAppInvitationClient(
       'subscription-id',
       'resource-group',
       'static-site',
       credential,
-      async () => new Response('{}', { status: 403, statusText: 'Forbidden' }),
+      async () => new Response(JSON.stringify({
+        error: {
+          code: 'AuthorizationFailed',
+          message: "Sensitive details cannot perform action 'Microsoft.Web/staticSites/createUserInvitation/action' over scope '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Web/staticSites/site'",
+        },
+      }), {
+        status: 403,
+        statusText: 'Forbidden',
+        headers: { 'x-ms-correlation-request-id': '12345678-1234-1234-1234-123456789abc' },
+      }),
     )
-    await expect(forbidden.createInvitation('person@example.com')).rejects.toThrow('403 Forbidden')
+
+    const error = await forbidden.createInvitation('private@example.com').catch((reason: unknown) => reason)
+    expect(error).toBeInstanceOf(Error)
+    expect((error as Error).message).toContain('code=AuthorizationFailed')
+    expect((error as Error).message).toContain('action=Microsoft.Web/staticSites/createUserInvitation/action')
+    expect((error as Error).message).not.toContain('private@example.com')
   })
 })

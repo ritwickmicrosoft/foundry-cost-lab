@@ -56,7 +56,7 @@ describe('access request workflow', () => {
     expect(await repository.list()).toHaveLength(1)
   })
 
-  it('approves with a short-lived invitation visible only to the requester view', async () => {
+  it('approves with an invitation that the requester page can complete automatically', async () => {
     const { createInvitation, service } = await setup()
     const requester = principal()
     const administrator = principal({
@@ -111,7 +111,7 @@ describe('access request workflow', () => {
     })
   })
 
-  it('keeps approved access and the fallback invitation when email delivery fails', async () => {
+  it('keeps approved access and its automatic-completion fallback when email delivery fails', async () => {
     const deliveryError = Object.assign(new Error('Sensitive provider details'), { code: 'EmailSendFailed' })
     const sendApprovalEmail = vi.fn(async () => { throw deliveryError })
     const { repository, service } = await setup({ sendApprovalEmail })
@@ -140,6 +140,38 @@ describe('access request workflow', () => {
       emailDeliveryStatus: 'failed',
       emailErrorCode: 'EmailSendFailed',
     })
+  })
+
+  it('returns a failed direct-role approval to pending so it can be retried safely', async () => {
+    const { createInvitation, repository, service } = await setup()
+    const requester = principal()
+    const administrator = principal({
+      userId: 'admin-user-id',
+      userRoles: ['authenticated', 'costlab-admin'],
+    })
+    const requestId = accessRequestId(requester)
+    await repository.write({
+      schemaVersion: 1,
+      requestId,
+      identityProvider: 'aad',
+      userId: requester.userId,
+      userDetails: requester.userDetails.toLocaleLowerCase(),
+      reason: 'Need access',
+      status: 'approved',
+      requestedAt: '2026-08-23T11:00:00.000Z',
+      updatedAt: '2026-08-23T12:00:00.000Z',
+      accessGrantedAt: '2026-08-23T12:00:00.000Z',
+      appUrl: 'https://foundry.example.test/',
+    })
+
+    await expect(service.getOwn(requester)).resolves.toMatchObject({ status: 'pending' })
+    await expect(service.list()).resolves.toEqual([
+      expect.objectContaining({ requestId, status: 'pending' }),
+    ])
+    await expect(service.decide(requestId, 'approve', administrator)).resolves.toMatchObject({
+      status: 'approved',
+    })
+    expect(createInvitation).toHaveBeenCalledOnce()
   })
 
   it('rejects requests and fails closed for non-AAD requesters', async () => {

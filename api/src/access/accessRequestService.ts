@@ -15,6 +15,8 @@ export interface RequesterAccessStatus {
   updatedAt: string
   invitationUrl?: string
   invitationExpiresOn?: string
+  appUrl?: string
+  accessGrantedAt?: string
   emailDeliveryStatus?: 'not-configured' | 'pending' | 'sent' | 'failed'
 }
 
@@ -44,8 +46,13 @@ export function accessRequestId(principal: ClientPrincipal): string {
 const normalizeReason = (reason: unknown) =>
   typeof reason === 'string' ? reason.trim().replace(/\s+/g, ' ').slice(0, 500) : ''
 
+const effectiveStatus = (record: AccessRequestRecord): AccessRequestStatus =>
+  record.status === 'approved' && record.accessGrantedAt && !record.invitationUrl
+    ? 'pending'
+    : record.status
+
 const requesterView = (record: AccessRequestRecord): RequesterAccessStatus => ({
-  status: record.status,
+  status: effectiveStatus(record),
   reason: record.reason,
   requestedAt: record.requestedAt,
   updatedAt: record.updatedAt,
@@ -53,16 +60,16 @@ const requesterView = (record: AccessRequestRecord): RequesterAccessStatus => ({
     ? {
         invitationUrl: record.invitationUrl,
         invitationExpiresOn: record.invitationExpiresOn,
-        ...(record.emailDeliveryStatus ? { emailDeliveryStatus: record.emailDeliveryStatus } : {}),
       }
     : {}),
+  ...(record.emailDeliveryStatus ? { emailDeliveryStatus: record.emailDeliveryStatus } : {}),
 })
 
 const adminView = (record: AccessRequestRecord): AdminAccessRequest => ({
   requestId: record.requestId,
   userDetails: record.userDetails,
   reason: record.reason,
-  status: record.status,
+  status: effectiveStatus(record),
   requestedAt: record.requestedAt,
   updatedAt: record.updatedAt,
   ...(record.decidedAt ? { decidedAt: record.decidedAt } : {}),
@@ -99,8 +106,7 @@ export class AccessRequestService {
     if (existing?.status === 'pending') return requesterView(existing)
     if (
       existing?.status === 'approved' &&
-      existing.invitationExpiresOn &&
-      new Date(existing.invitationExpiresOn) > this.now()
+      existing.invitationExpiresOn && new Date(existing.invitationExpiresOn) > this.now()
     ) {
       return requesterView(existing)
     }
@@ -141,8 +147,7 @@ export class AccessRequestService {
     if (decision === 'approve') {
       if (
         record.status === 'approved' &&
-        record.invitationExpiresOn &&
-        new Date(record.invitationExpiresOn) > this.now()
+        record.invitationExpiresOn && new Date(record.invitationExpiresOn) > this.now()
       ) {
         return adminView(record)
       }
@@ -159,6 +164,8 @@ export class AccessRequestService {
         decidedByUserId: administrator.userId,
         invitationUrl: invitation.invitationUrl,
         invitationExpiresOn: invitation.expiresOn,
+        appUrl: undefined,
+        accessGrantedAt: undefined,
         emailDeliveryStatus: this.approvalEmailSender ? 'pending' as const : 'not-configured' as const,
         emailSentAt: undefined,
         emailOperationId: undefined,
@@ -194,6 +201,8 @@ export class AccessRequestService {
         decidedByUserId: administrator.userId,
         invitationUrl: undefined,
         invitationExpiresOn: undefined,
+        appUrl: undefined,
+        accessGrantedAt: undefined,
         emailDeliveryStatus: undefined,
         emailSentAt: undefined,
         emailOperationId: undefined,

@@ -23,9 +23,9 @@ const emailStatusLabel = (request: AccessRequest) => {
   if (request.emailDeliveryStatus === 'sent') return 'Approval email sent'
   if (request.emailDeliveryStatus === 'pending') return 'Approval email pending'
   if (request.emailDeliveryStatus === 'failed') {
-    return `Approval email failed${request.emailErrorCode ? ` (${request.emailErrorCode})` : ''}; request-page fallback remains available`
+    return `Approval email failed${request.emailErrorCode ? ` (${request.emailErrorCode})` : ''}; the requester page can still complete access`
   }
-  if (request.emailDeliveryStatus === 'not-configured') return 'Approval email not configured; request-page fallback remains available'
+  if (request.emailDeliveryStatus === 'not-configured') return 'Approval email not configured; the requester page can still complete access'
   return null
 }
 
@@ -140,7 +140,7 @@ export function AccessRequestsDialog() {
             </div>
           </div>
           <Dialog.Description id="access-requests-description">
-            Approval creates a 24-hour <code>costlab-user</code> invitation. The requester must accept it before access is granted.
+            Approval creates <code>costlab-user</code> access. The requester page completes the invitation automatically.
           </Dialog.Description>
           {error ? <div className="notice notice--warning">{error}</div> : null}
           <div className="access-request-list" aria-label="Access request queue">

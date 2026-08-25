@@ -19,6 +19,8 @@ export interface AccessRequestRecord {
   decidedByUserId?: string
   invitationUrl?: string
   invitationExpiresOn?: string
+  appUrl?: string
+  accessGrantedAt?: string
   emailDeliveryStatus?: 'not-configured' | 'pending' | 'sent' | 'failed'
   emailSentAt?: string
   emailOperationId?: string

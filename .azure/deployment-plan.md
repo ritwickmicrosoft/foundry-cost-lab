@@ -17,7 +17,7 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 - Azure Blob Storage for current and historical rate-card and catalog snapshots
 - Azure Static Web Apps Standard hosting
 - Managed Entra authentication and named-user invitation roles
-- Self-service authenticated access requests with costlab-admin approval and short-lived native SWA invitations
+- Self-service authenticated access requests with costlab-admin approval and automatic requester-side invitation completion
 - Post-approval Azure Communication Services Email notification with an Azure-managed domain and request-page fallback
 - Managed identity and least-privilege role assignments
 - Azure Monitor action group and failed/missed morning-sync alerts
@@ -34,14 +34,14 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 | Rates, catalog, health API | Azure Functions v4, TypeScript | Azure Functions Flex Consumption |
 | Last-good snapshots | JSON documents | Azure Blob Storage |
 | Scheduled sync | Timer-triggered function | Azure Functions |
-| Identity | Static Web Apps managed authentication | Named AAD invitations with `costlab-user` |
+| Identity | Static Web Apps managed authentication | Auto-completed AAD invitations with `costlab-user` |
 | Approval notification | Azure Communication Services Email | Global Communication Service with free Azure-managed sender domain |
 
 ## Deployment Parameters
 
 - Azure subscription: `Ritwick - Demo` (`1d53bfb3-a84c-4eb4-8c79-f29dc8424b6a`), approved by the user on 2026-08-21
 - Azure hosting location: East US 2, selected by the user on 2026-08-21. Calculator pricing regions are Canada Central, Canada East, East US, and East US 2.
-- Named AAD users: Invited after deployment to the Static Web Apps `costlab-user` role
+- Named AAD users: Invited to `costlab-user` after owner approval; the request page completes access automatically
 - Operations alert email: Optional; alert rules deploy without an email receiver when omitted
 - Approval reply-to email: `ritwickdutta@microsoft.com` by default; configurable without changing the managed sender
 
@@ -63,8 +63,8 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 - Model pricing is keyed by model ID and deployment SKU. Exact Retail meters take precedence; Marketplace, private-offer, and managed-compute fallbacks require a matching source- and date-stamped profile and never carry across SKUs.
 - Pricing readiness exposes processing geography, required model dimensions, and independent agent-tool, RAG, observability, networking, and disaster-recovery coverage before an estimate can be treated as approval-ready.
 - PWA installation reuses the existing Static Web Apps service. The worker precaches only versioned static assets and never caches HTML navigation, API, or authentication responses; managed Entra authorization remains mandatory at launch.
-- Access requests reuse private Blob storage. Requester endpoints require `authenticated`, approval endpoints require `costlab-admin`, Functions repeat role checks, and the managed identity receives only Static Web App read plus create-invitation at the target site.
-- Approval notifications run only after the invitation-backed approval is persisted. ACS Email uses managed identity with resource-scoped `Communication and Email Service Owner`; send failure is recorded but cannot roll back approval, and the private request page remains the fallback.
+- Access requests reuse private Blob storage. Requester endpoints require `authenticated`, approval endpoints require `costlab-admin`, and Functions repeat role checks. Invitation URLs are returned only to the matching requester.
+- Approval persists a native invitation before requester-page completion or email. ACS Email uses managed identity with resource-scoped `Communication and Email Service Owner`; send failure cannot block access completion.
 - The Azure-managed sender domain is free and low-volume. Grounded native-CAD meters are `$0.0004` per email and `$0.0002/MB`; limits are 5 emails/minute and 10 emails/hour with no quota increase. Engagement tracking is disabled.
 - PDF reports include known totals, unpriced decisions, formulas, assumptions, and rate provenance. PDF libraries are lazy-loaded and excluded from service-worker precache, adding no backend or Azure resource.
 - Disaster recovery uses explicit secondary capacity per service. It does not combine with the legacy blanket secondary-region multiplier.
@@ -72,7 +72,7 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 - Canada East has no availability zones. Its Standard Agent Setup file-storage estimate uses exact Hot LRS CAD meters and surfaces the resilience downgrade; Canada Central, East US, and East US 2 use exact Hot ZRS meters. Azure AI Search uses the exact regional S1 meter in each card.
 - Standalone Content Safety uses an exact regional Standard text-record meter. Canada Central intentionally uses Canada East because the Retail API publishes no Canada Central Standard meter.
 - Analytics Logs ingestion selects the paid tier beginning at 5 GB; the cost input is billable volume after the free allowance.
-- Static Web Apps uses its managed Entra provider and built-in named-user invitations. Calculator routes require `costlab-user`; non-invited users fail closed without custom Graph permissions or stored Entra client secrets.
+- Static Web Apps uses its managed Entra provider and native named-user invitations. Calculator routes require `costlab-user`; unapproved users fail closed without custom Graph permissions or stored Entra client secrets.
 - Linux Flex Consumption does not support `WEBSITE_TIME_ZONE`. The timer runs hourly in UTC and accepts delayed invocation anywhere in the 06:00 `America/Toronto` hour, preserving DST behavior.
 - A new deployment also runs one off-hour bootstrap synchronization while any required regional rate-card or catalog snapshot is absent. Once all eight current snapshots exist, off-hour ticks return to no-op behavior.
 - All four regions execute independently. One regional failure cannot block successful rate or catalog promotion for the other regions; the invocation then fails in aggregate for alerting.
@@ -87,8 +87,8 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 ## Verification Evidence
 
 - Web unit/property suite: 62 passing tests
-- Functions/API suite: 35 passing tests
-- Chromium application workflow suite: 14 passing tests across desktop and mobile
+- Functions/API suite: 36 passing tests
+- Chromium application workflow suite: 15 passing tests across desktop and mobile
 - Production PWA suite: 3 passing device profiles covering desktop, Android, and iPhone-sized metadata/layout
 - Automated accessibility scan: zero detected violations
 - Full cost-model recalculation: under 100 ms p95 acceptance test
@@ -115,7 +115,7 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 
 ## Release Blocker
 
-No blocker remains for the current operator. Ritwick Dutta holds `costlab-user,costlab-admin` and verified the calculator in managed Microsoft Edge. Authenticated colleagues can now request access from the denial page and receive an owner-approved native invitation.
+No blocker remains for the current operator. Ritwick Dutta holds `costlab-user,costlab-admin` and verified the calculator in managed Microsoft Edge. Authenticated colleagues can request access from the denial page and receive the application role directly after owner approval.
 
 The Azure extension context is signed into a different tenant, so deployment and verification use the approved Azure CLI/azd context. Source is pushed to `ritwickmicrosoft/foundry-cost-lab` on `main`; GitHub deployment remains optional until its environment and OIDC settings are configured.
 
@@ -143,6 +143,7 @@ The Azure extension context is signed into a different tenant, so deployment and
 - PDF export update: deployed `2026-08-23` UTC; the header now downloads a multipage audit report, while Backup JSON and Import JSON remain in Scenarios for editable handoff. Generation is browser-only and added no Azure resource or backend consumption
 - Access request update: deployed `2026-08-24` UTC with authenticated self-service requests, private Blob queue, `costlab-admin` approvals, 24-hour native SWA invitations, direct-backend spoof protection, and invitation-only managed-identity RBAC
 - Approval email update: deployed `2026-08-25` UTC with ACS Email, free `AzureManagedDomain`, managed-identity authentication, post-persistence delivery, duplicate-send protection, owner-visible delivery status, and request-page fallback
+- Automatic access update: deployed `2026-08-25` UTC; owner approval creates a native invitation and the open requester page follows it automatically using the existing Microsoft sign-in, with email/manual completion as fallbacks
 - Email resources: `acs-foundry-cost-rm6kp7ehyjzk` and `email-foundry-cost-rm6kp7ehyjzk` are `Succeeded`, linked at data location `United States`, with sender `DoNotReply@65401a8a-6a55-4b49-8cd7-61895f9d7b95.azurecomm.net`
 - Email RBAC: Function identity `82cef8db-5006-489e-830f-3d2b3331ef49` holds `Communication and Email Service Owner` only at the generated Communication Service
 - Email smoke test: ACS operation `8bc439cc-a0cf-41a5-9281-38af6e21ad3c` returned `Succeeded` for a clearly labelled non-invitation test to the current operator
@@ -152,7 +153,9 @@ The Azure extension context is signed into a different tenant, so deployment and
 - Anonymous `/.auth/me`: `200` with a null principal
 - Managed AAD invitation: accepted for the current operator with `costlab-user`; calculator opened successfully in compliant Microsoft Edge
 - Owner role: current operator holds `costlab-user,costlab-admin`; Ahmed completed the live request/approve/accept flow and verified `costlab-user` in `/.auth/me` before opening the app
-- Access RBAC: custom role `Foundry Cost Lab Access Inviter` contains only `Microsoft.Web/staticSites/read` and `Microsoft.Web/staticSites/createinvitation/action`; deterministic assignment `e7c2d6ef-b2cf-5371-9bd0-0953f3ff7809` is scoped to the one production Static Web App and converged with Bicep
+- Access RBAC: the custom inviter role uses read plus a Static Web Apps action wildcard, excludes all 22 currently published non-invitation matches, and remains assigned only at the one production Static Web App
+- Automatic completion verification: Shankar submitted a request, the owner approved it, Shankar refreshed the already-open request page once, and the calculator opened without a manual invitation step
+- Direct-role finding: Azure logged `authproviders/users/write` as succeeded for a first-time authenticated requester, but the target never appeared in the supported user list and SWA has an open role-refresh issue; the release therefore uses native invitation creation with automatic browser completion
 - Access incident resolution: the original custom flow first required admin consent, then exposed tenant error `530004` for the guest identity. Managed AAD invitations avoid both dependencies; the current operator accepted `costlab-user` and opened the calculator in compliant Microsoft Edge.
 - Custom-auth cleanup: no Graph permissions, role-source Function, `AAD_CLIENT_ID`, or `AAD_CLIENT_SECRET` remain in the deployed application. The retained legacy app object has zero credentials and zero API permissions.
 - Protected rate and catalog routes: `302` for anonymous callers
@@ -172,7 +175,7 @@ The Azure extension context is signed into a different tenant, so deployment and
 
 ## Section 7: Validation Proof
 
-Validation refreshed: `2026-08-24 21:38:07 -04:00`.
+Validation refreshed: `2026-08-25 15:19:00 -04:00`.
 
 | Check | Command or evidence | Result |
 |---|---|---|
@@ -183,18 +186,18 @@ Validation refreshed: `2026-08-24 21:38:07 -04:00`.
 | Subscription/location | User confirmation + Bicep compilation | Passed: `Ritwick - Demo`, East US 2 |
 | Provision preview | `azd provision --preview --no-prompt` plus direct subscription what-if | Passed: creates one Communication Service, one Email Service, one `AzureManagedDomain`, scoped email RBAC, and Function settings; no deletes or replacements; existing resources show only known AVM normalization/redeploy entries |
 | Web verification | `npm --prefix web test`, `lint`, `build` | Passed: 62 tests, lint, production bundle |
-| API verification | `npm --prefix api test`, `lint`, `build` | Passed: 35 tests, approval email content/escaping, success/failure/idempotency, principal parsing, private request storage, invitation ARM client, handler authorization, strict typecheck, and production build |
-| Browser verification | `npm --prefix web run test:e2e` | Passed: 14 Chromium workflows, requester/admin approval, PDF/JSON downloads, mobile install prompt, model/SKU isolation, technical-domain coverage, and zero Axe violations |
+| API verification | `npm --prefix api test`, `lint`, `build` | Passed: invitation creation, migration retry, approval email content/escaping, success/failure/idempotency, principal parsing, private request storage, handler authorization, strict typecheck, and production build |
+| Browser verification | `npm --prefix web run test:e2e` | Passed: automatic invitation completion plus requester/admin approval, PDF/JSON downloads, mobile install prompt, model/SKU isolation, technical-domain coverage, and zero Axe violations |
 | PWA verification | `npm --prefix web run test:pwa` | Passed: manifest/icons, service-worker registration, desktop/Android/iPhone-sized layouts, static asset caching, and network-only navigation/API/auth |
 | Regional grounding | Production synchronizers + Azure Retail Prices API + Foundry ARM inventory | Passed: independent Canada Central, Canada East, East US, and East US 2 cards; 59/53/59/58 exact meter specs and 167/156/168/203 regional models |
 | Bicep | Azure Bicep MCP + `az bicep build-params` with process-scoped environment values | Passed: all modules and parameters compile with no diagnostics; AVM Email Service `0.4.5` and Communication Service `0.5.0` are pinned |
 | Packaging | `azd package --no-prompt` | Passed for API and web |
-| RBAC | Static review against API Blob, telemetry, catalog, invitation, and email operations | Passed; Communication and Email Service Owner is assigned only at the generated Communication Service, with no secret or connection string |
+| RBAC | Static review against API Blob, telemetry, catalog, invitation, and email operations | Passed; invitation-only action coverage is scoped to the one SWA and Communication and Email Service Owner is scoped to the generated Communication Service |
 | Policy | Azure Policy MCP assignment review + provision preview | Passed: no policy conflict surfaced for global Communication/Email resources, managed identity, or the existing private-Storage topology |
 | Deployer role | `az role assignment list --include-inherited` | Passed: Owner at approved subscription scope |
 | Dependency audit | `npm audit --audit-level=high` in web and API | Passed: zero reported vulnerabilities |
 
-Access verification: Static Web Apps recorded the accepted AAD user with `costlab-user,anonymous,authenticated`; managed Edge loaded the calculator successfully.
+Access verification: the original operator remains authorized, and Shankar completed the live request/approve/automatic-completion flow and opened the calculator.
 
 Private networking cost approval: user approved approximately CAD `$11.00/month` baseline on 2026-08-21, plus CAD `$0.0141/GB` data processing and private DNS queries. `Microsoft.App` provider registration was completed for Flex subnet delegation.
 
@@ -205,6 +208,6 @@ Private networking cost approval: user approved approximately CAD `$11.00/month`
 - Failed and zero-match syncs preserve the last-good card and surface staleness.
 - No customer credentials or customer-identifying shared data are stored.
 - Future Azure changes require the approved subscription and location to remain explicit.
-- Only users who accept a named Static Web Apps invitation to `costlab-user` can access calculator routes.
-- Microsoft Conditional Access policies still apply; invited Microsoft users may need a supported browser on a compliant managed device.
+- Only users who complete the owner-approved `costlab-user` invitation can access calculator routes; the requester page performs that completion automatically.
+- Microsoft Conditional Access policies still apply; approved Microsoft users may need a supported browser on a compliant managed device.
 - Alert inbox receipt remains the only pending human-side operational confirmation.

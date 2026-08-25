@@ -109,15 +109,38 @@ resource accessInviterRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' 
   name: accessInviterRoleName
   properties: {
     roleName: 'Foundry Cost Lab Access Inviter'
-    description: 'Reads the Foundry Cost Lab Static Web App and creates short-lived user role invitations.'
+    description: 'Reads the Foundry Cost Lab Static Web App and creates approved user invitations.'
     type: 'CustomRole'
     permissions: [
       {
         actions: [
           'Microsoft.Web/staticSites/read'
-          'Microsoft.Web/staticSites/createinvitation/action'
+          'Microsoft.Web/staticSites/*/action'
         ]
-        notActions: []
+        notActions: [
+          'Microsoft.Web/staticSites/authproviders/listusers/action'
+          'Microsoft.Web/staticSites/builds/databaseConnections/show/action'
+          'Microsoft.Web/staticSites/builds/linkedBackends/validate/action'
+          'Microsoft.Web/staticSites/builds/listappsettings/action'
+          'Microsoft.Web/staticSites/builds/listfunctionappsettings/action'
+          'Microsoft.Web/staticSites/builds/showDatabaseConnections/action'
+          'Microsoft.Web/staticSites/builds/zipdeploy/action'
+          'Microsoft.Web/staticSites/customdomains/validate/action'
+          'Microsoft.Web/staticSites/databaseConnections/show/action'
+          'Microsoft.Web/staticSites/linkedBackends/validate/action'
+          'Microsoft.Web/staticSites/privateEndpointConnectionProxies/validate/action'
+          'Microsoft.Web/staticSites/validateCustomDomainOwnership/action'
+          'Microsoft.Web/staticSites/listConfiguredRoles/action'
+          'Microsoft.Web/staticSites/listfunctionappsettings/action'
+          'Microsoft.Web/staticSites/listappsettings/action'
+          'Microsoft.Web/staticSites/detach/action'
+          'Microsoft.Web/staticSites/getuser/action'
+          'Microsoft.Web/staticSites/listsecrets/action'
+          'Microsoft.Web/staticSites/resetapikey/action'
+          'Microsoft.Web/staticSites/zipdeploy/action'
+          'Microsoft.Web/staticSites/showDatabaseConnections/action'
+          'Microsoft.Web/staticSites/publish/action'
+        ]
         dataActions: []
         notDataActions: []
       }

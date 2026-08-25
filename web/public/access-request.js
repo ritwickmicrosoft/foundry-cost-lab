@@ -4,8 +4,21 @@
   const form = document.querySelector('#request-form')
   const reason = document.querySelector('#reason')
   const submit = document.querySelector('#submit')
-  const accept = document.querySelector('#accept')
+  const completeAccess = document.querySelector('#complete-access')
   const refresh = document.querySelector('#refresh')
+  const accessCompletionKey = 'foundry-cost-lab-access-completion'
+
+  const completeAccessOnce = (request) => {
+    const approvalVersion = request.invitationExpiresOn || request.updatedAt
+    try {
+      if (sessionStorage.getItem(accessCompletionKey) === approvalVersion) return false
+      sessionStorage.setItem(accessCompletionKey, approvalVersion)
+    } catch {
+      return false
+    }
+    location.assign(request.invitationUrl)
+    return true
+  }
 
   const setStatus = (message, state) => {
     status.textContent = message
@@ -14,7 +27,7 @@
   }
 
   const render = (request) => {
-    accept.hidden = true
+    completeAccess.hidden = true
     form.hidden = request?.status === 'pending' || request?.status === 'approved'
     if (!request) {
       status.hidden = true
@@ -26,9 +39,9 @@
       return
     }
     if (request.status === 'approved' && request.invitationUrl) {
-      setStatus(`Approved. Accept the invitation before ${new Date(request.invitationExpiresOn).toLocaleString()}.`, 'approved')
-      accept.href = request.invitationUrl
-      accept.hidden = false
+      setStatus('Approved. Completing access automatically with your signed-in Microsoft account...', 'approved')
+      completeAccess.href = request.invitationUrl
+      completeAccess.hidden = false
       return
     }
     setStatus('Your previous request was not approved. You may submit a new request with updated context.', 'rejected')
@@ -51,6 +64,7 @@
       }
       identity.textContent = `Signed in as ${principal.userDetails}`
       if (principal.userRoles?.includes('costlab-user')) {
+        try { sessionStorage.removeItem(accessCompletionKey) } catch { /* Storage is optional. */ }
         location.assign('/')
         return
       }
@@ -60,7 +74,11 @@
         return
       }
       if (!response.ok) throw new Error('Unable to retrieve your access request.')
-      render(await response.json())
+      const request = await response.json()
+      render(request)
+      if (request.status === 'approved' && request.invitationUrl && !completeAccessOnce(request)) {
+        setStatus('Approved. Select Complete access if the automatic Microsoft sign-in did not finish.', 'approved')
+      }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Access status is unavailable.', 'error')
     }
@@ -87,5 +105,5 @@
 
   refresh.addEventListener('click', () => void load())
   void load()
-  setInterval(() => void load(), 30000)
+  setInterval(() => void load(), 5000)
 })()

@@ -16,6 +16,27 @@ interface InvitationResponse {
   }
 }
 
+interface ArmErrorResponse {
+  error?: { code?: unknown; message?: unknown }
+}
+
+const diagnosticValue = (value: unknown) =>
+  typeof value === 'string'
+    ? value.replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 100)
+    : ''
+
+const authorizationDiagnosticValue = (value: unknown) =>
+  typeof value === 'string'
+    ? value.replace(/[^a-zA-Z0-9._/-]/g, '').slice(0, 500)
+    : ''
+
+const authorizationContext = (value: unknown) => {
+  if (typeof value !== 'string') return []
+  const action = authorizationDiagnosticValue(value.match(/perform action '([^']+)'/)?.[1])
+  const scope = authorizationDiagnosticValue(value.match(/over scope '([^']+)'/)?.[1])
+  return [action ? `action=${action}` : '', scope ? `scope=${scope}` : ''].filter(Boolean)
+}
+
 export interface AccessInvitation {
   invitationUrl: string
   expiresOn: string
@@ -50,7 +71,22 @@ export class StaticWebAppInvitationClient {
       },
     })
     if (!response.ok) {
-      throw new Error(`Static Web Apps invitation API returned ${response.status} ${response.statusText}.`)
+      const body = await response.json().catch(() => null) as ArmErrorResponse | null
+      const errorCode = diagnosticValue(
+        response.headers.get('x-ms-error-code') || body?.error?.code,
+      )
+      const correlationId = diagnosticValue(
+        response.headers.get('x-ms-correlation-request-id') || response.headers.get('x-ms-request-id'),
+      )
+      const diagnostics = [
+        errorCode ? `code=${errorCode}` : '',
+        correlationId ? `correlation=${correlationId}` : '',
+        ...authorizationContext(body?.error?.message),
+      ].filter(Boolean).join(', ')
+      throw new Error(
+        `Static Web Apps invitation API returned ${response.status} ${response.statusText}` +
+        `${diagnostics ? ` (${diagnostics})` : ''}.`,
+      )
     }
     return await response.json() as T
   }
@@ -92,9 +128,5 @@ export function createStaticWebAppInvitationClient() {
   if (!subscriptionId || !resourceGroup || !staticSiteName) {
     throw new Error('Static Web Apps invitation configuration is incomplete.')
   }
-  return new StaticWebAppInvitationClient(
-    subscriptionId,
-    resourceGroup,
-    staticSiteName,
-  )
+  return new StaticWebAppInvitationClient(subscriptionId, resourceGroup, staticSiteName)
 }
