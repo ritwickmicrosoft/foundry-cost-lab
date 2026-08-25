@@ -6,6 +6,7 @@ import type {
   AccessRequestStatus,
 } from './accessRequestRepository.js'
 import type { AccessInvitation } from './staticWebAppInvitationClient.js'
+import type { ApprovalEmailSender } from './approvalEmailSender.js'
 
 export interface RequesterAccessStatus {
   status: AccessRequestStatus
@@ -14,6 +15,7 @@ export interface RequesterAccessStatus {
   updatedAt: string
   invitationUrl?: string
   invitationExpiresOn?: string
+  emailDeliveryStatus?: 'not-configured' | 'pending' | 'sent' | 'failed'
 }
 
 export interface AdminAccessRequest {
@@ -24,6 +26,8 @@ export interface AdminAccessRequest {
   requestedAt: string
   updatedAt: string
   decidedAt?: string
+  emailDeliveryStatus?: 'not-configured' | 'pending' | 'sent' | 'failed'
+  emailErrorCode?: string
 }
 
 export interface InvitationIssuer {
@@ -49,6 +53,7 @@ const requesterView = (record: AccessRequestRecord): RequesterAccessStatus => ({
     ? {
         invitationUrl: record.invitationUrl,
         invitationExpiresOn: record.invitationExpiresOn,
+        ...(record.emailDeliveryStatus ? { emailDeliveryStatus: record.emailDeliveryStatus } : {}),
       }
     : {}),
 })
@@ -61,6 +66,8 @@ const adminView = (record: AccessRequestRecord): AdminAccessRequest => ({
   requestedAt: record.requestedAt,
   updatedAt: record.updatedAt,
   ...(record.decidedAt ? { decidedAt: record.decidedAt } : {}),
+  ...(record.emailDeliveryStatus ? { emailDeliveryStatus: record.emailDeliveryStatus } : {}),
+  ...(record.emailErrorCode ? { emailErrorCode: record.emailErrorCode } : {}),
 })
 
 export class AccessRequestService {
@@ -68,6 +75,7 @@ export class AccessRequestService {
     private readonly repository: AccessRequestRepository,
     private readonly invitationIssuer: InvitationIssuer,
     private readonly now: () => Date = () => new Date(),
+    private readonly approvalEmailSender: ApprovalEmailSender | null = null,
   ) {}
 
   private validateRequester(principal: ClientPrincipal) {
@@ -151,7 +159,33 @@ export class AccessRequestService {
         decidedByUserId: administrator.userId,
         invitationUrl: invitation.invitationUrl,
         invitationExpiresOn: invitation.expiresOn,
+        emailDeliveryStatus: this.approvalEmailSender ? 'pending' as const : 'not-configured' as const,
+        emailSentAt: undefined,
+        emailOperationId: undefined,
+        emailErrorCode: undefined,
       })
+      await this.repository.write(record)
+      if (this.approvalEmailSender) {
+        try {
+          const operationId = await this.approvalEmailSender.sendApprovalEmail({
+            recipient: record.userDetails,
+            invitationUrl: invitation.invitationUrl,
+            invitationExpiresOn: invitation.expiresOn,
+          })
+          Object.assign(record, {
+            emailDeliveryStatus: 'sent' as const,
+            emailSentAt: this.now().toISOString(),
+            emailOperationId: operationId,
+            emailErrorCode: undefined,
+          })
+        } catch (error) {
+          record.emailDeliveryStatus = 'failed'
+          record.emailErrorCode =
+            typeof error === 'object' && error && 'code' in error && typeof error.code === 'string'
+              ? error.code.replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 80) || 'email-delivery-failed'
+              : 'email-delivery-failed'
+        }
+      }
     } else {
       Object.assign(record, {
         status: 'rejected' as const,
@@ -160,6 +194,10 @@ export class AccessRequestService {
         decidedByUserId: administrator.userId,
         invitationUrl: undefined,
         invitationExpiresOn: undefined,
+        emailDeliveryStatus: undefined,
+        emailSentAt: undefined,
+        emailOperationId: undefined,
+        emailErrorCode: undefined,
       })
     }
     await this.repository.write(record)

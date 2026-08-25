@@ -19,6 +19,10 @@ export interface AccessRequestRecord {
   decidedByUserId?: string
   invitationUrl?: string
   invitationExpiresOn?: string
+  emailDeliveryStatus?: 'not-configured' | 'pending' | 'sent' | 'failed'
+  emailSentAt?: string
+  emailOperationId?: string
+  emailErrorCode?: string
 }
 
 export interface AccessRequestRepository {
@@ -42,6 +46,12 @@ function parseRecord(value: string): AccessRequestRecord {
     typeof record.updatedAt !== 'string'
   ) {
     throw new Error('Stored access request is invalid.')
+  }
+  if (
+    record.emailDeliveryStatus !== undefined &&
+    !['not-configured', 'pending', 'sent', 'failed'].includes(record.emailDeliveryStatus)
+  ) {
+    throw new Error('Stored access request email status is invalid.')
   }
   return record as AccessRequestRecord
 }

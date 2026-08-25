@@ -37,6 +37,8 @@ flowchart LR
   SWA -->|/api/rates and /api/catalog| API[Azure Functions Flex Consumption]
   SWA -->|managed Entra auth and invitation role| Identity[Static Web Apps identity]
   API -->|managed identity| Blob[(Blob Storage)]
+  API -->|managed identity after owner approval| ACS[Azure Communication Services Email]
+  ACS --> ManagedDomain[Azure-managed sender domain]
   Timer[Hourly UTC timer] -->|06:00 America/Toronto only| API
   API -->|server-side only| Retail[Azure Retail Prices API]
   API -->|least-privilege ARM read| Catalog[Regional Foundry model inventory]
@@ -144,7 +146,7 @@ npm run build
 npm audit
 ```
 
-Current evidence: 62 web unit/property tests, 31 API tests, 14 application workflows, and 3 production PWA device profiles pass. Browser coverage includes requester/approver access flows, desktop, Android, iPhone-sized metadata/layout, PDF/JSON downloads, mobile installation, secure offline cache boundaries, four-region isolation, model/SKU profile isolation, all five technical pricing domains, scenario sharing, no-overflow checks, and zero Axe violations. Both builds and linters pass.
+Current evidence: 62 web unit/property tests, 35 API tests, 14 application workflows, and 3 production PWA device profiles pass. Browser coverage includes requester/approver access flows, desktop, Android, iPhone-sized metadata/layout, PDF/JSON downloads, mobile installation, secure offline cache boundaries, four-region isolation, model/SKU profile isolation, all five technical pricing domains, scenario sharing, no-overflow checks, and zero Axe violations. Both builds and linters pass.
 
 ## Rate policy
 
@@ -182,17 +184,23 @@ Production uses the managed Microsoft Entra provider and Static Web Apps invitat
 1. A user signs in with Microsoft Entra ID. If they do not have `costlab-user`, the 403 response displays **Request access** instead of a dead-end denial page.
 2. The requester confirms their authenticated email and optionally supplies a business reason. One private record per Static Web Apps user is written under `access-requests/` in the existing Blob container.
 3. Users with `costlab-admin` see an access-request shield in the application header. A badge shows pending requests.
-4. **Approve** creates a 24-hour native Static Web Apps invitation for `costlab-user`; **Reject** records the decision without granting access.
-5. The requester refreshes their status, selects **Accept approved access**, and follows the invitation link. They may need to sign out and back in once for the new role to appear.
+4. **Approve** creates and privately persists a 24-hour native Static Web Apps invitation for `costlab-user`; **Reject** records the decision without granting access.
+5. After approval is durable, the Function sends a welcome email containing the acceptance link, application link, expiry, and feedback request through Azure Communication Services Email. Repeated approval of the same active invitation does not send a duplicate email.
+6. If email is delayed or fails, approval remains valid. The requester can refresh the request page, select **Accept approved access**, and use the privately returned invitation. They may need to sign out and back in once for the new role to appear.
 
 Security boundaries:
 
 - The SWA edge permits the self-service endpoint only to `authenticated`; queue and decision endpoints require `costlab-admin`.
 - Azure Functions independently decode `x-ms-client-principal` and repeat authenticated/admin role checks.
 - The Function managed identity receives only `Microsoft.Web/staticSites/read` and `Microsoft.Web/staticSites/createinvitation/action`, assigned at the one Static Web App.
+- The same identity receives `Communication and Email Service Owner` only at the one Communication Services resource. Email uses Entra tokens; no ACS access key or connection string is stored.
 - Invitation URLs are stored in private Blob storage and returned only to the matching requester. The admin queue never returns invitation bearer URLs.
-- Request logs contain only a one-way request ID and timestamps, not email addresses or business reasons.
-- This workflow reuses existing resources and does not add a billable Azure service.
+- Request logs contain only a one-way request ID and timestamps, not email addresses, business reasons, or invitation URLs. The owner queue receives only sanitized delivery status and error codes.
+- The approval record is written before email is attempted. Delivery failure is recorded as `failed` and never rolls back access approval; the request page remains the operational fallback.
+
+Approval email uses one free `AzureManagedDomain` linked to one global Communication Services resource, with data location `United States`, fixed `DoNotReply` sender identity, disabled engagement tracking, and `ritwickdutta@microsoft.com` as the default reply-to address. Azure-managed sender domains cannot be personalized.
+
+The grounded East US 2 native-CAD Retail meters are CAD `$0.0004` per sent email and CAD `$0.0002/MB` transferred, effective `2023-04-01`. At 100 small approvals, send charges are approximately CAD `$0.04` plus negligible transfer. The Azure-managed domain is intentionally for low volume: 5 emails/minute and 10 emails/hour, with no quota increase available. The request-page fallback protects access when that limit or any transient delivery failure is encountered.
 
 The current operator has both `costlab-user` and `costlab-admin`. To grant another owner approval rights after they have accepted application access:
 
@@ -235,6 +243,7 @@ azd env new prod
 azd env set AZURE_SUBSCRIPTION_ID <subscription-guid>
 azd env set AZURE_LOCATION eastus2
 azd env set OPERATIONS_ALERT_EMAIL <operations-email> # optional
+azd env set ACCESS_EMAIL_REPLY_TO ritwickdutta@microsoft.com # optional override
 ```
 
 The approved deployment uses East US 2 for Static Web Apps Standard, Flex Consumption, LRS Blob Storage, and the 0.5 GB/day Log Analytics workspace. This hosting choice does not change the calculator's independent Canada Central, Canada East, East US, and East US 2 pricing scopes. Static Web Apps and Functions remain publicly reachable; Storage public network access and shared-key authentication are disabled, and the Function reaches Blob through a private endpoint with its user-assigned managed identity.

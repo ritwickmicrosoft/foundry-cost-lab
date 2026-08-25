@@ -30,6 +30,9 @@ param staticWebAppLocation string = 'eastus2'
 @description('Optional operations email for failed or missed morning synchronization alerts.')
 param operationsAlertEmail string = ''
 
+@description('Reply-to address for approved-access email feedback. Leave empty to omit reply-to.')
+param accessEmailReplyTo string = 'ritwickdutta@microsoft.com'
+
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var shortToken = take(resourceToken, 12)
 var resourceGroupName = 'rg-foundry-cost-${environmentName}'
@@ -41,6 +44,8 @@ var logAnalyticsName = 'log-foundry-cost-${shortToken}'
 var applicationInsightsName = 'appi-foundry-cost-${shortToken}'
 var actionGroupName = 'ag-foundry-cost-${shortToken}'
 var staticWebAppName = 'swa-foundry-cost-${shortToken}'
+var emailServiceName = 'email-foundry-cost-${shortToken}'
+var communicationServiceName = 'acs-foundry-cost-${shortToken}'
 var accessInviterRoleName = '68890e8b-8860-4a0a-9ad7-4383cdd2f80c'
 var deploymentStorageContainerName = 'app-package-${shortToken}'
 var rateStorageContainerName = 'rate-cards'
@@ -226,6 +231,45 @@ module applicationInsights 'br/public:avm/res/insights/component:0.8.0' = {
   }
 }
 
+module emailService 'br/public:avm/res/communication/email-service:0.4.5' = {
+  scope: az.resourceGroup(resourceGroupName)
+  params: {
+    name: emailServiceName
+    location: 'global'
+    dataLocation: 'United States'
+    tags: tags
+    domains: [
+      {
+        name: 'AzureManagedDomain'
+        domainManagement: 'AzureManaged'
+        userEngagementTracking: 'Disabled'
+        tags: tags
+      }
+    ]
+  }
+  dependsOn: [resourceGroup]
+}
+
+module communicationService 'br/public:avm/res/communication/communication-service:0.5.0' = {
+  scope: az.resourceGroup(resourceGroupName)
+  params: {
+    name: communicationServiceName
+    location: 'global'
+    dataLocation: 'United States'
+    tags: tags
+    linkedDomains: emailService.outputs.domainResourceIds
+    roleAssignments: [
+      {
+        name: guid(resourceGroupName, communicationServiceName, functionIdentity.outputs.principalId, '09976791-48a7-449e-bb21-39d1a415f350')
+        principalId: functionIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        roleDefinitionIdOrName: '09976791-48a7-449e-bb21-39d1a415f350'
+        description: 'Allows the Function identity to send approved-access email without credentials.'
+      }
+    ]
+  }
+}
+
 module monitoring './monitoring.bicep' = {
   scope: az.resourceGroup(resourceGroupName)
   params: {
@@ -251,6 +295,9 @@ var functionAppSettings = {
   AZURE_RESOURCE_GROUP: resourceGroupName
   STATIC_WEB_APP_NAME: staticWebAppName
   ACCESS_INVITATION_HOURS: '24'
+  ACCESS_EMAIL_ENDPOINT: 'https://${communicationService.outputs.endpoint}'
+  ACCESS_EMAIL_SENDER_ADDRESS: 'DoNotReply@${emailService.outputs.domainFromSenderDomains[0]}'
+  ACCESS_EMAIL_REPLY_TO: accessEmailReplyTo
   RATE_STORAGE_ACCOUNT_URL: storage.outputs.primaryBlobEndpoint
   RATE_STORAGE_CONTAINER: rateStorageContainerName
 }

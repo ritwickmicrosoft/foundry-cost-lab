@@ -18,6 +18,7 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 - Azure Static Web Apps Standard hosting
 - Managed Entra authentication and named-user invitation roles
 - Self-service authenticated access requests with costlab-admin approval and short-lived native SWA invitations
+- Post-approval Azure Communication Services Email notification with an Azure-managed domain and request-page fallback
 - Managed identity and least-privilege role assignments
 - Azure Monitor action group and failed/missed morning-sync alerts
 - Safe scenario export/import for colleague handoff
@@ -34,6 +35,7 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 | Last-good snapshots | JSON documents | Azure Blob Storage |
 | Scheduled sync | Timer-triggered function | Azure Functions |
 | Identity | Static Web Apps managed authentication | Named AAD invitations with `costlab-user` |
+| Approval notification | Azure Communication Services Email | Global Communication Service with free Azure-managed sender domain |
 
 ## Deployment Parameters
 
@@ -41,6 +43,7 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 - Azure hosting location: East US 2, selected by the user on 2026-08-21. Calculator pricing regions are Canada Central, Canada East, East US, and East US 2.
 - Named AAD users: Invited after deployment to the Static Web Apps `costlab-user` role
 - Operations alert email: Optional; alert rules deploy without an email receiver when omitted
+- Approval reply-to email: `ritwickdutta@microsoft.com` by default; configurable without changing the managed sender
 
 ## Execution Plan
 
@@ -61,6 +64,8 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 - Pricing readiness exposes processing geography, required model dimensions, and independent agent-tool, RAG, observability, networking, and disaster-recovery coverage before an estimate can be treated as approval-ready.
 - PWA installation reuses the existing Static Web Apps service. The worker precaches only versioned static assets and never caches HTML navigation, API, or authentication responses; managed Entra authorization remains mandatory at launch.
 - Access requests reuse private Blob storage. Requester endpoints require `authenticated`, approval endpoints require `costlab-admin`, Functions repeat role checks, and the managed identity receives only Static Web App read plus create-invitation at the target site.
+- Approval notifications run only after the invitation-backed approval is persisted. ACS Email uses managed identity with resource-scoped `Communication and Email Service Owner`; send failure is recorded but cannot roll back approval, and the private request page remains the fallback.
+- The Azure-managed sender domain is free and low-volume. Grounded native-CAD meters are `$0.0004` per email and `$0.0002/MB`; limits are 5 emails/minute and 10 emails/hour with no quota increase. Engagement tracking is disabled.
 - PDF reports include known totals, unpriced decisions, formulas, assumptions, and rate provenance. PDF libraries are lazy-loaded and excluded from service-worker precache, adding no backend or Azure resource.
 - Disaster recovery uses explicit secondary capacity per service. It does not combine with the legacy blanket secondary-region multiplier.
 - All four rate cards are independently synced and stored under region-specific current/history paths. An unsynchronized region remains explicitly unpriced and never inherits another region's fallback values.
@@ -82,7 +87,7 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 ## Verification Evidence
 
 - Web unit/property suite: 62 passing tests
-- Functions/API suite: 31 passing tests
+- Functions/API suite: 35 passing tests
 - Chromium application workflow suite: 14 passing tests across desktop and mobile
 - Production PWA suite: 3 passing device profiles covering desktop, Android, and iPhone-sized metadata/layout
 - Automated accessibility scan: zero detected violations
@@ -91,7 +96,7 @@ Build and prepare a tenant-internal Azure AI cost modelling application with a R
 - Web lint and workspace diagnostics: no errors
 - Web and Functions dependency audits: zero known vulnerabilities
 - Bicep template and monitoring module: compile with zero diagnostics
-- Bicep parameters: compile with only environment name, location, and optional operations email
+- Bicep parameters: compile with only environment name, location, optional operations email, and optional approval reply-to email
 
 ## All validation checks pass
 
@@ -122,6 +127,8 @@ The Azure extension context is signed into a different tenant, so deployment and
 - Storage role: Storage Blob Data Owner, required for identity-based `AzureWebJobsStorage`, timer locks, deployment packages, and rate/catalog snapshot reads and writes
 - Monitoring scope: generated Application Insights component only
 - Monitoring role: Monitoring Metrics Publisher for Entra-authenticated telemetry ingestion
+- Approval email scope: generated Communication Services resource only
+- Approval email role: Communication and Email Service Owner, required for credential-free data-plane email sending
 - Catalog scope: subscription, because `Microsoft.CognitiveServices/locations/models/read` is a subscription/location ARM operation
 - Catalog role: custom role containing only `Microsoft.CognitiveServices/locations/models/read`
 - Unneeded roles: no Queue, Table, Cosmos, or Service Bus bindings exist in the deployed calculator API
@@ -135,6 +142,10 @@ The Azure extension context is signed into a different tenant, so deployment and
 - Installable PWA update: deployed `2026-08-23` UTC with Microsoft-branded install icons, standalone manifest, native install/update controls, and an asset-only service worker; no Azure resource was added
 - PDF export update: deployed `2026-08-23` UTC; the header now downloads a multipage audit report, while Backup JSON and Import JSON remain in Scenarios for editable handoff. Generation is browser-only and added no Azure resource or backend consumption
 - Access request update: deployed `2026-08-24` UTC with authenticated self-service requests, private Blob queue, `costlab-admin` approvals, 24-hour native SWA invitations, direct-backend spoof protection, and invitation-only managed-identity RBAC
+- Approval email update: deployed `2026-08-25` UTC with ACS Email, free `AzureManagedDomain`, managed-identity authentication, post-persistence delivery, duplicate-send protection, owner-visible delivery status, and request-page fallback
+- Email resources: `acs-foundry-cost-rm6kp7ehyjzk` and `email-foundry-cost-rm6kp7ehyjzk` are `Succeeded`, linked at data location `United States`, with sender `DoNotReply@65401a8a-6a55-4b49-8cd7-61895f9d7b95.azurecomm.net`
+- Email RBAC: Function identity `82cef8db-5006-489e-830f-3d2b3331ef49` holds `Communication and Email Service Owner` only at the generated Communication Service
+- Email smoke test: ACS operation `8bc439cc-a0cf-41a5-9281-38af6e21ad3c` returned `Succeeded` for a clearly labelled non-invitation test to the current operator
 - Static Web Apps: `https://salmon-plant-01ce70c0f.7.azurestaticapps.net/` (`Ready`)
 - Linked Functions API: `https://func-foundry-cost-rm6kp7ehyjzk.azurewebsites.net/` (`Running`)
 - Anonymous root request: `302` to the Entra sign-in flow
@@ -156,29 +167,30 @@ The Azure extension context is signed into a different tenant, so deployment and
 - Controlled refresh: `FORCE_RATE_SYNC=true` was enabled only for one secured host-admin invocation, four-region `MORNING_SYNC_SUCCESS` completed in 33.1 seconds, and the setting was removed and verified absent
 - Monitoring: both scheduled-query alerts are enabled and target the `Foundry Cost Lab operations` email receiver; Azure accepted a `logalertv2` action-group test notification, with inbox receipt pending human confirmation
 - Static Web Apps deployment credential: the AZD npm step again hit `ECOMPROMISED`; its debug log was removed, the preinstalled SWA CLI deployed from `web/dist` with an environment-only credential, and the token was rotated after use
+- Approval email web deployment: azd's transient npx SWA CLI cache was missing `@babel/runtime`; API publishing had already succeeded, so the healthy global SWA CLI `2.0.10` deployed only `web/dist` with the credential held in process memory and immediately cleared
 - Live RBAC: managed identity `82cef8db-5006-489e-830f-3d2b3331ef49` retains Storage Blob Data Owner, Monitoring Metrics Publisher, and the custom catalog-only subscription role at their intended scopes
 
 ## Section 7: Validation Proof
 
-Validation refreshed: `2026-08-24 17:42:07 -04:00`.
+Validation refreshed: `2026-08-24 21:38:07 -04:00`.
 
 | Check | Command or evidence | Result |
 |---|---|---|
-| AZD installation | `Get-Command azd` | Passed: 1.31.300.0 |
+| AZD installation | `azd version` | Passed: 1.31.2 stable |
 | Project schema | Azure MCP `validate_azure_yaml` | Passed against stable schema |
 | Environment | `azd env get-values` (names/presence only) | Passed: approved subscription/location and operations settings configured |
 | Authentication | `azd auth login --check-status` | Passed as `ritwickdutta@microsoft.com` |
 | Subscription/location | User confirmation + Bicep compilation | Passed: `Ritwick - Demo`, East US 2 |
-| Provision preview | `azd provision --preview --no-prompt` | Passed: existing resources only show provider-normalization drift; no changes applied and code-only deployment selected |
+| Provision preview | `azd provision --preview --no-prompt` plus direct subscription what-if | Passed: creates one Communication Service, one Email Service, one `AzureManagedDomain`, scoped email RBAC, and Function settings; no deletes or replacements; existing resources show only known AVM normalization/redeploy entries |
 | Web verification | `npm --prefix web test`, `lint`, `build` | Passed: 62 tests, lint, production bundle |
-| API verification | `npm --prefix api test`, `lint`, `build` | Passed: 31 tests, principal parsing, private request storage, invitation ARM client, workflow, handler authorization, strict typecheck, and production build |
+| API verification | `npm --prefix api test`, `lint`, `build` | Passed: 35 tests, approval email content/escaping, success/failure/idempotency, principal parsing, private request storage, invitation ARM client, handler authorization, strict typecheck, and production build |
 | Browser verification | `npm --prefix web run test:e2e` | Passed: 14 Chromium workflows, requester/admin approval, PDF/JSON downloads, mobile install prompt, model/SKU isolation, technical-domain coverage, and zero Axe violations |
 | PWA verification | `npm --prefix web run test:pwa` | Passed: manifest/icons, service-worker registration, desktop/Android/iPhone-sized layouts, static asset caching, and network-only navigation/API/auth |
 | Regional grounding | Production synchronizers + Azure Retail Prices API + Foundry ARM inventory | Passed: independent Canada Central, Canada East, East US, and East US 2 cards; 59/53/59/58 exact meter specs and 167/156/168/203 regional models |
-| Bicep | Azure Bicep MCP + `az bicep build-params` with process-scoped environment values | Passed: all modules and parameters compile with no diagnostics |
+| Bicep | Azure Bicep MCP + `az bicep build-params` with process-scoped environment values | Passed: all modules and parameters compile with no diagnostics; AVM Email Service `0.4.5` and Communication Service `0.5.0` are pinned |
 | Packaging | `azd package --no-prompt` | Passed for API and web |
-| RBAC | Static review against API Blob, telemetry, and catalog operations | Passed; resource-scoped data roles and the catalog-only subscription role are documented above |
-| Policy | Azure Policy MCP assignment review + provision preview | Passed: current managed-identity/private-Storage topology remains compliant; no policy conflict for this code-only update |
+| RBAC | Static review against API Blob, telemetry, catalog, invitation, and email operations | Passed; Communication and Email Service Owner is assigned only at the generated Communication Service, with no secret or connection string |
+| Policy | Azure Policy MCP assignment review + provision preview | Passed: no policy conflict surfaced for global Communication/Email resources, managed identity, or the existing private-Storage topology |
 | Deployer role | `az role assignment list --include-inherited` | Passed: Owner at approved subscription scope |
 | Dependency audit | `npm audit --audit-level=high` in web and API | Passed: zero reported vulnerabilities |
 

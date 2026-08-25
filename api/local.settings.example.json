@@ -8,6 +8,9 @@
     "AZURE_RESOURCE_GROUP": "rg-foundry-cost-dev",
     "STATIC_WEB_APP_NAME": "swa-foundry-cost-dev",
     "ACCESS_INVITATION_HOURS": "24",
+    "ACCESS_EMAIL_ENDPOINT": "",
+    "ACCESS_EMAIL_SENDER_ADDRESS": "",
+    "ACCESS_EMAIL_REPLY_TO": "",
     "RATE_STORAGE_ACCOUNT_URL": "",
     "RATE_STORAGE_CONTAINER": "rate-cards"
   }

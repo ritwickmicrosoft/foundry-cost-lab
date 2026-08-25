@@ -15,6 +15,18 @@ interface AccessRequest {
   requestedAt: string
   updatedAt: string
   decidedAt?: string
+  emailDeliveryStatus?: 'not-configured' | 'pending' | 'sent' | 'failed'
+  emailErrorCode?: string
+}
+
+const emailStatusLabel = (request: AccessRequest) => {
+  if (request.emailDeliveryStatus === 'sent') return 'Approval email sent'
+  if (request.emailDeliveryStatus === 'pending') return 'Approval email pending'
+  if (request.emailDeliveryStatus === 'failed') {
+    return `Approval email failed${request.emailErrorCode ? ` (${request.emailErrorCode})` : ''}; request-page fallback remains available`
+  }
+  if (request.emailDeliveryStatus === 'not-configured') return 'Approval email not configured; request-page fallback remains available'
+  return null
 }
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -142,6 +154,7 @@ export function AccessRequestsDialog() {
                   <small>
                     Requested {new Date(request.requestedAt).toLocaleString()} | {request.status}
                   </small>
+                  {emailStatusLabel(request) ? <small>{emailStatusLabel(request)}</small> : null}
                 </div>
                 {request.status === 'pending' ? (
                   <div className="access-request-row__actions">

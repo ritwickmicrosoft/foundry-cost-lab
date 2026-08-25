@@ -3,6 +3,7 @@ import { AccessRequestService } from '../access/accessRequestService.js'
 import { createAccessRequestRepository } from '../access/accessRequestRepository.js'
 import { createStaticWebAppInvitationClient } from '../access/staticWebAppInvitationClient.js'
 import { accessRequestId } from '../access/accessRequestService.js'
+import { createApprovalEmailSender } from '../access/approvalEmailSender.js'
 import { hasRole, isAuthenticated, parseClientPrincipal } from '../auth/clientPrincipal.js'
 
 const noStore = { 'Cache-Control': 'no-store' }
@@ -19,6 +20,8 @@ const service = () => new AccessRequestService(
     createInvitation: (...arguments_) =>
       createStaticWebAppInvitationClient().createInvitation(...arguments_),
   },
+  undefined,
+  createApprovalEmailSender(),
 )
 
 export async function getOwnAccessRequest(request: HttpRequest): Promise<HttpResponseInit> {
