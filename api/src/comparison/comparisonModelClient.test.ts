@@ -55,6 +55,8 @@ describe('Azure OpenAI comparison client', () => {
     })
     expect(body).not.toHaveProperty('temperature')
     expect(body).not.toHaveProperty('max_tokens')
+    expect(JSON.stringify(body)).toContain('Do not mention buyer lenses, competitor lenses, or internal sales terminology.')
+    expect(JSON.stringify(body)).toContain('Always finish complete sentences.')
     expect(result).toMatchObject({ promptTokens: 300, completionTokens: 120 })
   })
 

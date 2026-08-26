@@ -27,33 +27,8 @@ const TIER_LABELS: Record<CostTier, string> = {
   change: 'Change',
 }
 
-const BUYER_LENSES: Array<{ id: BuyerLens; label: string }> = [
-  { id: 'executive', label: 'Executive' },
-  { id: 'finance', label: 'Finance' },
-  { id: 'security', label: 'Security' },
-  { id: 'architecture', label: 'Architecture' },
-]
-
-const COMPETITOR_LENSES: Array<{ id: CompetitorLens; label: string }> = [
-  { id: 'none', label: 'No competitor' },
-  { id: 'aws', label: 'AWS' },
-  { id: 'google', label: 'Google' },
-  { id: 'databricks', label: 'Databricks' },
-]
-
-const BUYER_EVIDENCE: Record<BuyerLens, string[]> = {
-  executive: ['Business outcome KPI and target', 'Expected user adoption', 'Time to first production outcome'],
-  finance: ['Implementation and migration cost', 'Existing cloud commitment coverage', 'Operations FTE and three-year growth'],
-  security: ['Required compliance attestations', 'Data classification and residency', 'Identity and incident-response evidence'],
-  architecture: ['Integration effort and dependencies', 'Quota and performance acceptance criteria', 'Portability and exit requirements'],
-}
-
-const COMPETITOR_EVIDENCE: Record<CompetitorLens, string[]> = {
-  none: ['Current platform and data gravity', 'Incumbent contract constraints'],
-  aws: ['AWS data location and egress', 'AWS commitments and duplicated operations tooling', 'Microsoft 365 and Entra integration effort'],
-  google: ['Google data and Workspace dependencies', 'Model governance and regional availability', 'Microsoft 365 workflow reach'],
-  databricks: ['Lakehouse and data-pipeline ownership', 'Model serving plus application-platform cost', 'BI and governance overlap with Fabric/Purview'],
-}
+const SUMMARY_BUYER_LENS: BuyerLens = 'executive'
+const SUMMARY_COMPETITOR_LENS: CompetitorLens = 'none'
 
 const comparisonGridStyle = (count: number) => ({ '--comparison-count': count } as CSSProperties)
 
@@ -135,8 +110,6 @@ export function ScenarioComparisonWorkspace() {
   }), [comparisonIds, scenarios])
   const { sources, loading, notices } = useScenarioComparisonData(selected)
   const [baselineId, setBaselineId] = useState(comparisonIds[0] ?? '')
-  const [buyerLens, setBuyerLens] = useState<BuyerLens>('executive')
-  const [competitorLens, setCompetitorLens] = useState<CompetitorLens>('none')
   const [aiStatus, setAiStatus] = useState<ComparisonAiStatus | null>(null)
   const [aiBrief, setAiBrief] = useState<ComparisonBrief | null>(null)
   const [aiRemaining, setAiRemaining] = useState<number | null>(null)
@@ -176,7 +149,7 @@ export function ScenarioComparisonWorkspace() {
     setAiError(null)
     setAiBrief(null)
     setAiRemaining(null)
-    const cacheKey = comparisonBriefCacheKey(buyerLens, competitorLens, analysis.facts)
+    const cacheKey = comparisonBriefCacheKey(SUMMARY_BUYER_LENS, SUMMARY_COMPETITOR_LENS, analysis.facts)
     try {
       try {
         const cached = window.localStorage.getItem(cacheKey)
@@ -186,7 +159,7 @@ export function ScenarioComparisonWorkspace() {
           return
         }
       } catch {}
-      const response = await requestComparisonBrief(buyerLens, competitorLens, analysis.facts)
+      const response = await requestComparisonBrief(SUMMARY_BUYER_LENS, SUMMARY_COMPETITOR_LENS, analysis.facts)
       try {
         window.localStorage.setItem(cacheKey, JSON.stringify(response))
       } catch {
@@ -220,44 +193,18 @@ export function ScenarioComparisonWorkspace() {
           onClick={() => void explain()}
         >
           {aiLoading ? <LoaderCircle className="spin" aria-hidden="true" /> : <Sparkles aria-hidden="true" />}
-          {aiLoading ? 'Generating brief' : 'Explain trade-offs'}
+          {aiLoading ? 'Generating summary' : 'Generate summary'}
         </button>
       </header>
 
       <div className="comparison-controls">
         <div className="comparison-control">
-          <span>Baseline</span>
+          <span>Compare against</span>
           <select value={baseline.id} onChange={(event) => setBaselineId(event.target.value)}>
             {analysis.summaries.map((summary) => (
               <option key={summary.id} value={summary.id}>{summary.key} · {summary.name}</option>
             ))}
           </select>
-        </div>
-        <div className="comparison-control">
-          <span>Buyer lens</span>
-          <div className="segmented-control" role="group" aria-label="Buyer lens">
-            {BUYER_LENSES.map((lens) => (
-              <button
-                type="button"
-                key={lens.id}
-                aria-pressed={buyerLens === lens.id}
-                onClick={() => setBuyerLens(lens.id)}
-              >{lens.label}</button>
-            ))}
-          </div>
-        </div>
-        <div className="comparison-control">
-          <span>Competitive lens</span>
-          <div className="segmented-control" role="group" aria-label="Competitive lens">
-            {COMPETITOR_LENSES.map((lens) => (
-              <button
-                type="button"
-                key={lens.id}
-                aria-pressed={competitorLens === lens.id}
-                onClick={() => setCompetitorLens(lens.id)}
-              >{lens.label}</button>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -269,7 +216,7 @@ export function ScenarioComparisonWorkspace() {
       <section className="comparison-band" aria-labelledby="scorecard-title">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">Sales scorecard</span>
+            <span className="eyebrow">At a glance</span>
             <h3 id="scorecard-title">Business value and readiness</h3>
           </div>
           <span className="line-count">{analysis.summaries.length} saved scenarios</span>
@@ -380,31 +327,11 @@ export function ScenarioComparisonWorkspace() {
         </div>
       </section>
 
-      <section className="comparison-band comparison-evidence" aria-labelledby="evidence-title">
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">Discovery readiness</span>
-            <h3 id="evidence-title">Customer evidence needed</h3>
-          </div>
-          <span className="line-count">Not inferred from scenario cost inputs</span>
-        </div>
-        <div className="comparison-evidence__grid">
-          <div>
-            <strong>{BUYER_LENSES.find((lens) => lens.id === buyerLens)?.label} evidence</strong>
-            <ul>{BUYER_EVIDENCE[buyerLens].map((item) => <li key={item}>{item}</li>)}</ul>
-          </div>
-          <div>
-            <strong>{COMPETITOR_LENSES.find((lens) => lens.id === competitorLens)?.label} evidence</strong>
-            <ul>{COMPETITOR_EVIDENCE[competitorLens].map((item) => <li key={item}>{item}</li>)}</ul>
-          </div>
-        </div>
-      </section>
-
       <section className="comparison-band comparison-ai" aria-labelledby="ai-brief-title">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">Grounded narrative</span>
-            <h3 id="ai-brief-title">AI-assisted customer brief</h3>
+            <span className="eyebrow">Optional</span>
+            <h3 id="ai-brief-title">Decision summary</h3>
           </div>
           <span className="line-count">
             {aiRemaining === null ? `${analysis.facts.length} deterministic facts ready` : `${aiRemaining} generations remaining today`}
@@ -414,34 +341,34 @@ export function ScenarioComparisonWorkspace() {
         {aiBrief ? (
           <div className="comparison-brief">
             <div className="comparison-brief__summary">
-              <strong>Customer brief</strong>
+              <strong>Summary</strong>
               <p>{aiBrief.summary.text}</p>
               {aiBrief.summary.factIds.length ? <small>{aiBrief.summary.factIds.length} cited facts</small> : null}
             </div>
             <div className="comparison-brief__grid">
-              <BriefSection title="Microsoft win themes" items={aiBrief.microsoftWinThemes} facts={factText} />
-              <BriefSection title="Competitive exposure" items={aiBrief.competitiveExposure} facts={factText} />
-              <BriefSection title="Proof gaps" items={aiBrief.proofGaps} facts={factText} />
-              <BriefSection title="Next customer questions" items={aiBrief.discoveryQuestions} facts={factText} />
+              <BriefSection title="Strengths to consider" items={aiBrief.microsoftWinThemes} facts={factText} />
+              <BriefSection title="Trade-offs to consider" items={aiBrief.competitiveExposure} facts={factText} />
+              <BriefSection title="Evidence to confirm" items={aiBrief.proofGaps} facts={factText} />
+              <BriefSection title="Questions to resolve" items={aiBrief.discoveryQuestions} facts={factText} />
             </div>
-            <small className="comparison-brief__model">Generated by {aiBrief.model}; verify before customer use.</small>
+            <small className="comparison-brief__model">AI-generated from the comparison above. Verify before use.</small>
           </div>
         ) : (
           <div className="comparison-ai__empty">
             <Sparkles aria-hidden="true" />
             <div>
-              <strong>{aiStatus?.enabled ? 'Explain, do not calculate' : 'AI narrative is not enabled'}</strong>
+              <strong>{aiStatus?.enabled ? 'Create a concise summary' : 'Optional summary is unavailable'}</strong>
               <span>{aiStatus?.enabled
-                ? 'The model receives scenario aliases and verified facts only. Scenario names remain in this browser.'
-                : 'The deterministic comparison is complete and remains fully usable without a model deployment.'}</span>
+                ? 'Uses only the facts shown in this comparison.'
+                : 'The comparison above is complete and remains fully usable.'}</span>
             </div>
           </div>
         )}
       </section>
 
       <footer className="app-footer">
-        <strong>Comparison is a planning aid, not a vendor benchmark or commercial quote.</strong>
-        <span>Competitive statements require customer evidence or a dated external source.</span>
+        <strong>Comparison is a planning estimate, not a commercial quote.</strong>
+        <span>Confirm unpriced items and implementation assumptions before making a final decision.</span>
       </footer>
     </section>
   )

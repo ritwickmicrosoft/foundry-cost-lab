@@ -34,17 +34,17 @@ All figures use native CAD retail prices returned by Azure's Retail Prices API. 
 - Select exactly two or three saved scenarios in **Scenarios**, then open the dedicated comparison workspace. A fourth selection is blocked in both current and migrated browser state.
 - Every scenario is recalculated against the current rate card and catalog for its own saved region. The comparison never reuses a different scenario's totals or treats an unpriced line as zero.
 - The deterministic scorecard shows known monthly and annual subtotal, delta from the selected baseline, cost per monthly user, cost per 1,000 agent turns, pricing completeness, security controls, private networking, disaster recovery, tier distribution, top line-item drivers, and changed assumptions.
-- **Executive**, **Finance**, **Security**, and **Architecture** buyer lenses expose the evidence needed for a defensible customer decision. Optional **AWS**, **Google**, and **Databricks** lenses frame discovery gaps without fabricating competitor prices or declaring a winner.
+- The workspace presents one neutral customer view with a selectable comparison baseline. Internal buyer and competitor selectors are not exposed in customer conversations.
 - “Lowest known subtotal” is used instead of “winner” whenever pricing coverage differs. Missing implementation effort, migration, commitments, data gravity, operational labour, and business outcome evidence remain explicit discovery items.
 
 ### Optional grounded brief
 
-The comparison remains fully usable without AI. When enabled, **Explain trade-offs** asks a dedicated `gpt-5.4-nano` deployment to turn deterministic facts into a concise sales brief; it does not calculate totals or choose the recommended scenario.
+The comparison remains fully usable without AI. When enabled, **Generate summary** asks a dedicated `gpt-5.4-nano` deployment to turn deterministic facts into a concise decision summary; it does not calculate totals or choose the recommended scenario.
 
-- The browser sends aliases `A`, `B`, and `C`, buyer/competitor lenses, and at most 24 bounded facts. Scenario names and complete saved configurations never leave the browser.
-- The API treats fact text as untrusted data, requires schema-constrained JSON, rejects unknown citations, and requires citations for the summary, Microsoft win themes, and competitive exposure.
+- The browser sends aliases `A`, `B`, and `C` and at most 24 bounded facts. Scenario names and complete saved configurations never leave the browser.
+- The API treats fact text as untrusted data, requires schema-constrained JSON, rejects unknown citations, and requires citations for the summary, strengths, and trade-offs. Generated wording is instructed to avoid internal sales or lens terminology.
 - The model is keyless: local account authentication is disabled and the Function user-assigned identity has `Cognitive Services OpenAI User` only on the comparison model account.
-- Per-user usage is SHA-256 keyed and limited to 20 generations per UTC day in private Blob Storage. Briefs are cached best-effort in the user's browser by aliased facts and selected lenses.
+- Per-user usage is SHA-256 keyed and limited to 20 generations per UTC day in private Blob Storage. Summaries are cached best-effort in the user's browser by their aliased facts.
 - The East US 2 deployment uses GA `gpt-5.4-nano` `2026-03-17`, Global Standard, at 10K TPM. With native CAD Retail rates of `$0.2818/million` input tokens and `$1.7613/million` output tokens, a planning envelope of 3K input plus the enforced 1,000-completion-token cap is about CAD `$0.00261` per brief, `$0.0521` at one user's daily limit, or `$1.56` if that user exhausts the limit every day for 30 days. Reasoning effort is disabled for this extraction-style task.
 
 ## Architecture
