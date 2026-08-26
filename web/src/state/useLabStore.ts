@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { createPreset } from '../domain/presets'
+import { MAX_COMPARISON_SCENARIOS } from '../domain/scenarioComparison'
 import type { CostConfig, Posture } from '../domain/types'
 import { createResilientStorage } from './resilientStorage'
 
@@ -17,6 +18,7 @@ interface LabState {
   config: CostConfig
   scenarios: SavedScenario[]
   comparisonIds: string[]
+  comparisonOpen: boolean
   updateConfig: (update: (config: CostConfig) => void) => void
   replaceConfig: (config: CostConfig) => void
   applyPreset: (posture: Posture) => void
@@ -24,6 +26,8 @@ interface LabState {
   loadScenario: (id: string) => void
   deleteScenario: (id: string) => void
   toggleComparison: (id: string) => void
+  openComparison: () => void
+  closeComparison: () => void
 }
 
 interface PersistedLabState {
@@ -96,7 +100,17 @@ export function migrateLabState(persistedState: unknown, version: number): Persi
   }
 
   const state = persistedState as PersistedLabState
-  if (version >= 6) return state
+  if (version >= 6) {
+    const scenarios = Array.isArray(state.scenarios) ? state.scenarios : []
+    const scenarioIds = new Set(scenarios.map((scenario) => scenario.id))
+    return {
+      ...state,
+      scenarios,
+      comparisonIds: [...new Set(Array.isArray(state.comparisonIds) ? state.comparisonIds : [])]
+        .filter((id) => scenarioIds.has(id))
+        .slice(0, MAX_COMPARISON_SCENARIOS),
+    }
+  }
   const migrateContentSafetyKey = (config: CostConfig) => {
     const migrated = structuredClone(config)
     migrated.guardrail.contentSafety.rateKey = 'guardrail.contentSafety.text1k'
@@ -166,6 +180,7 @@ export const useLabStore = create<LabState>()(
       config: initialConfig,
       scenarios: [],
       comparisonIds: [],
+      comparisonOpen: false,
       updateConfig: (update) =>
         set((state) => {
           const config = structuredClone(state.config)
@@ -231,12 +246,16 @@ export const useLabStore = create<LabState>()(
         set((state) => ({
           comparisonIds: state.comparisonIds.includes(id)
             ? state.comparisonIds.filter((candidate) => candidate !== id)
-            : [...state.comparisonIds, id],
+            : state.comparisonIds.length < MAX_COMPARISON_SCENARIOS
+              ? [...state.comparisonIds, id]
+              : state.comparisonIds,
         })),
+      openComparison: () => set((state) => ({ comparisonOpen: state.comparisonIds.length >= 2 })),
+      closeComparison: () => set({ comparisonOpen: false }),
     }),
     {
       name: 'foundry-cost-lab',
-      version: 6,
+      version: 7,
       storage: createJSONStorage(() => labStorage.storage),
       migrate: migrateLabState,
       partialize: (state) => ({

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createPreset } from '../domain/presets'
+import { MAX_COMPARISON_SCENARIOS } from '../domain/scenarioComparison'
 import type { CostConfig } from '../domain/types'
 import { migrateLabState, type SavedScenario } from './useLabStore'
 
@@ -21,6 +22,25 @@ function versionOneConfig(): CostConfig {
 }
 
 describe('lab-state migrations', () => {
+  it('caps comparison selections and removes stale scenario IDs', () => {
+    const scenarios: SavedScenario[] = ['a', 'b', 'c', 'd'].map((id) => ({
+      id,
+      name: id,
+      config: createPreset('poc'),
+      rateCardAsOf: '2026-08-25',
+      createdAt: '2026-08-25T00:00:00Z',
+      updatedAt: '2026-08-25T00:00:00Z',
+    }))
+    const migrated = migrateLabState({
+      config: createPreset('poc'),
+      scenarios,
+      comparisonIds: ['a', 'missing', 'b', 'a', 'c', 'd'],
+    }, 6)
+
+    expect(migrated.comparisonIds).toEqual(['a', 'b', 'c'])
+    expect(migrated.comparisonIds).toHaveLength(MAX_COMPARISON_SCENARIOS)
+  })
+
   it('hydrates current and saved version-1 configurations without losing inputs', () => {
     const legacyConfig = versionOneConfig()
     legacyConfig.workload.monthlyUsers = 777

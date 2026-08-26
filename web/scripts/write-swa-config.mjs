@@ -24,6 +24,11 @@ const config = {
       allowedRoles: ['costlab-admin'],
     },
     {
+      route: '/api/comparison/explain',
+      methods: ['GET', 'POST'],
+      allowedRoles: ['costlab-user'],
+    },
+    {
       route: '/sw.js',
       allowedRoles: ['costlab-user'],
       headers: {

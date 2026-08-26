@@ -94,6 +94,38 @@ test('offers native installation when the browser exposes an install prompt', as
 })
 
 test('persists, compares, and restores a named scenario', async ({ page }) => {
+  let comparisonRequest = ''
+  await page.route('**/api/comparison/explain', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ enabled: true, model: 'comparison-test-model', dailyLimit: 20 }),
+      })
+      return
+    }
+    comparisonRequest = route.request().postData() ?? ''
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        brief: {
+          summary: { text: 'Scenario B has the lowest known subtotal, subject to pricing coverage.', factIds: ['scenario:B:monthly-known', 'scenario:B:coverage'] },
+          microsoftWinThemes: [{ text: 'Use the verified architecture facts to test Microsoft fit.', factIds: ['scenario:A:architecture'] }],
+          competitiveExposure: [{ text: 'Competitive evidence is still required.', factIds: ['scenario:B:architecture'] }],
+          proofGaps: [{ text: 'Validate implementation effort.', factIds: [] }],
+          discoveryQuestions: [
+            { text: 'Which business outcome defines success?', factIds: [] },
+            { text: 'Where does governed data reside?', factIds: [] },
+          ],
+          model: 'comparison-test-model',
+        },
+        remainingToday: 19,
+        promptTokens: 400,
+        completionTokens: 120,
+      }),
+    })
+  })
   await page.goto('/')
   const monthlyUsers = page.getByLabel('Monthly users')
   await monthlyUsers.fill('777')
@@ -104,9 +136,43 @@ test('persists, compares, and restores a named scenario', async ({ page }) => {
   await expect(page.getByRole('dialog').getByText('Recovery baseline')).toBeVisible()
   await page.getByRole('checkbox', { name: /Recovery baseline/ }).check()
   await page.getByRole('button', { name: 'Close scenarios' }).click()
-  await expect(page.getByRole('heading', { name: 'Scenario comparison' })).toBeVisible()
 
   await monthlyUsers.fill('999')
+  await page.getByRole('button', { name: /Scenarios/ }).click()
+  await page.getByLabel('Scenario name').fill('Growth case')
+  await page.getByRole('button', { name: 'Save current' }).click()
+  await page.getByRole('checkbox', { name: /Growth case/ }).check()
+  await page.getByRole('button', { name: 'Close scenarios' }).click()
+
+  await monthlyUsers.fill('1200')
+  await page.getByRole('button', { name: /Scenarios/ }).click()
+  await page.getByLabel('Scenario name').fill('Scale case')
+  await page.getByRole('button', { name: 'Save current' }).click()
+  await page.getByRole('checkbox', { name: /Scale case/ }).check()
+  await expect(page.getByText('3 of 3 selected')).toBeVisible()
+
+  await page.getByLabel('Scenario name').fill('Fourth case')
+  await page.getByRole('button', { name: 'Save current' }).click()
+  await expect(page.getByRole('checkbox', { name: /Fourth case/ })).toBeDisabled()
+  await page.getByRole('button', { name: 'Compare 3' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Compare scenarios' })).toBeVisible()
+  await expect(page.getByText('Business value and readiness')).toBeVisible()
+  await expect(page.getByText('Top cost drivers')).toBeVisible()
+  await page.getByRole('button', { name: 'Finance' }).click()
+  await expect(page.getByRole('button', { name: 'Finance' })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'AWS' }).click()
+  await expect(page.getByRole('button', { name: 'AWS' })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Explain trade-offs' }).click()
+  await expect(page.getByText('Customer brief', { exact: true })).toBeVisible()
+  await expect(page.getByText('Microsoft win themes')).toBeVisible()
+  await expect(page.getByText('Next customer questions')).toBeVisible()
+  expect(comparisonRequest).not.toContain('Recovery baseline')
+  expect(comparisonRequest).not.toContain('Growth case')
+  expect(comparisonRequest).toContain('scenario:A:monthly-known')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+
+  await page.getByRole('button', { name: 'Back to estimate' }).click()
   await page.getByRole('button', { name: /Scenarios/ }).click()
   const savedRow = page.locator('.scenario-row').filter({ hasText: 'Recovery baseline' })
   await savedRow.getByRole('button', { name: 'Load Recovery baseline' }).click()

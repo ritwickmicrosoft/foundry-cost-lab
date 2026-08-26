@@ -4,7 +4,8 @@ import { ConfigPanel } from './components/ConfigPanel'
 import { AccessRequestsDialog } from './components/AccessRequestsDialog'
 import { PwaControls } from './components/PwaControls'
 import { ResultsPanel } from './components/ResultsPanel'
-import { ScenarioActions, ScenarioComparison } from './components/ScenarioManager'
+import { ScenarioActions } from './components/ScenarioManager'
+import { ScenarioComparisonWorkspace } from './components/ScenarioComparisonWorkspace'
 import { computeCost } from './domain/computeCost'
 import { getRateCardFreshness } from './domain/rates'
 import { useFoundryCatalog } from './hooks/useFoundryCatalog'
@@ -17,6 +18,7 @@ function App() {
   const config = useLabStore((state) => state.config)
   const updateConfig = useLabStore((state) => state.updateConfig)
   const applyPreset = useLabStore((state) => state.applyPreset)
+  const comparisonOpen = useLabStore((state) => state.comparisonOpen)
   const { rateCard, loading, usingFallback, notice } = useRateCard(config.region)
   const { catalog, notice: catalogNotice } = useFoundryCatalog(config.region)
   const rateDiff = useRateDiff(config.region)
@@ -80,17 +82,18 @@ function App() {
           </aside>
         ) : null}
 
-        <div className="workspace">
-          <ConfigPanel config={config} updateConfig={updateConfig} applyPreset={applyPreset} catalog={catalog} />
-          <main className="readout">
-            <ResultsPanel
-              result={result}
-              config={config}
-              rateCard={rateCard}
-              rateDiff={rateDiff}
-              modelCatalog={catalog.models}
-            />
-            <ScenarioComparison currentResult={result} rateCard={rateCard} modelCatalog={catalog.models} />
+        <div className={`workspace${comparisonOpen ? ' workspace--comparison' : ''}`}>
+          {!comparisonOpen ? <ConfigPanel config={config} updateConfig={updateConfig} applyPreset={applyPreset} catalog={catalog} /> : null}
+          <main className={`readout${comparisonOpen ? ' readout--comparison' : ''}`}>
+            {comparisonOpen ? <ScenarioComparisonWorkspace /> : (
+              <ResultsPanel
+                result={result}
+                config={config}
+                rateCard={rateCard}
+                rateDiff={rateDiff}
+                modelCatalog={catalog.models}
+              />
+            )}
             <footer className="app-footer">
               <strong>Planning estimate only.</strong>
               <span>List rates exclude negotiated agreements, taxes, and customer-specific commitments. Unpriced lines are intentionally excluded from the known subtotal.</span>

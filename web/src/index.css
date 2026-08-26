@@ -16,6 +16,8 @@
   --cp-success: #16a34a;
   --cp-danger: #dc2626;
   --cp-warning: #f59e0b;
+  --cp-scenario-b: #087f73;
+  --cp-scenario-c: #f4c430;
   --cp-link: #0078d4;
   --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
   --cp-overlay: rgba(255, 255, 255, 0.8);
@@ -49,6 +51,8 @@ html[data-theme="dark"] {
   --cp-success: #4ade80;
   --cp-danger: #f87171;
   --cp-warning: #fbbf24;
+  --cp-scenario-b: #5eead4;
+  --cp-scenario-c: #facc15;
   --cp-link: #4da6ff;
   --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
   --cp-overlay: rgba(41, 41, 41, 0.88);

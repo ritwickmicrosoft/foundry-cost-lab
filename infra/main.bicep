@@ -46,6 +46,8 @@ var actionGroupName = 'ag-foundry-cost-${shortToken}'
 var staticWebAppName = 'swa-foundry-cost-${shortToken}'
 var emailServiceName = 'email-foundry-cost-${shortToken}'
 var communicationServiceName = 'acs-foundry-cost-${shortToken}'
+var comparisonModelAccountName = 'oai-foundry-cost-${shortToken}'
+var comparisonModelDeploymentName = 'comparison-gpt-5-4-nano'
 var accessInviterRoleName = '68890e8b-8860-4a0a-9ad7-4383cdd2f80c'
 var deploymentStorageContainerName = 'app-package-${shortToken}'
 var rateStorageContainerName = 'rate-cards'
@@ -254,6 +256,52 @@ module applicationInsights 'br/public:avm/res/insights/component:0.8.0' = {
   }
 }
 
+module comparisonModelAccount 'br/public:avm/res/cognitive-services/account:0.19.0' = {
+  scope: az.resourceGroup(resourceGroupName)
+  params: {
+    name: comparisonModelAccountName
+    location: location
+    kind: 'OpenAI'
+    sku: 'S0'
+    customSubDomainName: comparisonModelAccountName
+    disableLocalAuth: true
+    publicNetworkAccess: 'Enabled'
+    tags: tags
+    deployments: [
+      {
+        name: comparisonModelDeploymentName
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-5.4-nano'
+          version: '2026-03-17'
+        }
+        raiPolicyName: 'Microsoft.DefaultV2'
+        sku: {
+          name: 'GlobalStandard'
+          capacity: 10
+        }
+        versionUpgradeOption: 'OnceCurrentVersionExpired'
+      }
+    ]
+    diagnosticSettings: [
+      {
+        name: 'comparison-model-diagnostics'
+        workspaceResourceId: logAnalytics.outputs.resourceId
+      }
+    ]
+    roleAssignments: [
+      {
+        name: guid(resourceGroupName, comparisonModelAccountName, functionIdentity.outputs.principalId, '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+        principalId: functionIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        description: 'Allows the Function identity to generate grounded comparison briefs without account keys.'
+      }
+    ]
+  }
+  dependsOn: [resourceGroup]
+}
+
 module emailService 'br/public:avm/res/communication/email-service:0.4.5' = {
   scope: az.resourceGroup(resourceGroupName)
   params: {
@@ -321,6 +369,10 @@ var functionAppSettings = {
   ACCESS_EMAIL_ENDPOINT: 'https://${communicationService.outputs.endpoint}'
   ACCESS_EMAIL_SENDER_ADDRESS: 'DoNotReply@${emailService.outputs.domainFromSenderDomains[0]}'
   ACCESS_EMAIL_REPLY_TO: accessEmailReplyTo
+  COMPARISON_AI_ENABLED: 'true'
+  COMPARISON_AI_ENDPOINT: comparisonModelAccount.outputs.endpoint
+  COMPARISON_AI_DEPLOYMENT: comparisonModelDeploymentName
+  COMPARISON_AI_DAILY_LIMIT: '20'
   RATE_STORAGE_ACCOUNT_URL: storage.outputs.primaryBlobEndpoint
   RATE_STORAGE_CONTAINER: rateStorageContainerName
 }

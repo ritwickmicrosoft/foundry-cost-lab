@@ -27,7 +27,25 @@ All figures use native CAD retail prices returned by Azure's Retail Prices API. 
 - Approved Marketplace, private-offer, or managed-compute rates can be saved as a source- and date-stamped scenario profile for exactly one model/SKU. Verified native CAD rate-card values always take precedence over that profile.
 - The results view shows the selected processing boundary, every required rate dimension, Retail versus fallback coverage, and approval blockers. A catalog entry is never represented as a priced deployment.
 - The Run configuration also includes 18 dated service definitions across Content Understanding, Speech, Translation, and Language. Their definition date is visible in the UI; each service has an independent usage quantity and rate.
-- The catalog is discovery and cost-planning metadata; this application does not create model deployments. Deployment availability must be confirmed against the target subscription, region, quota, and provider terms.
+- The catalog is discovery and cost-planning metadata; this application does not create the customer model deployments being estimated. Their availability must be confirmed against the target subscription, region, quota, and provider terms. The small comparison model described below is a separate internal utility.
+
+## Scenario comparison
+
+- Select exactly two or three saved scenarios in **Scenarios**, then open the dedicated comparison workspace. A fourth selection is blocked in both current and migrated browser state.
+- Every scenario is recalculated against the current rate card and catalog for its own saved region. The comparison never reuses a different scenario's totals or treats an unpriced line as zero.
+- The deterministic scorecard shows known monthly and annual subtotal, delta from the selected baseline, cost per monthly user, cost per 1,000 agent turns, pricing completeness, security controls, private networking, disaster recovery, tier distribution, top line-item drivers, and changed assumptions.
+- **Executive**, **Finance**, **Security**, and **Architecture** buyer lenses expose the evidence needed for a defensible customer decision. Optional **AWS**, **Google**, and **Databricks** lenses frame discovery gaps without fabricating competitor prices or declaring a winner.
+- “Lowest known subtotal” is used instead of “winner” whenever pricing coverage differs. Missing implementation effort, migration, commitments, data gravity, operational labour, and business outcome evidence remain explicit discovery items.
+
+### Optional grounded brief
+
+The comparison remains fully usable without AI. When enabled, **Explain trade-offs** asks a dedicated `gpt-5.4-nano` deployment to turn deterministic facts into a concise sales brief; it does not calculate totals or choose the recommended scenario.
+
+- The browser sends aliases `A`, `B`, and `C`, buyer/competitor lenses, and at most 24 bounded facts. Scenario names and complete saved configurations never leave the browser.
+- The API treats fact text as untrusted data, requires schema-constrained JSON, rejects unknown citations, and requires citations for the summary, Microsoft win themes, and competitive exposure.
+- The model is keyless: local account authentication is disabled and the Function user-assigned identity has `Cognitive Services OpenAI User` only on the comparison model account.
+- Per-user usage is SHA-256 keyed and limited to 20 generations per UTC day in private Blob Storage. Briefs are cached best-effort in the user's browser by aliased facts and selected lenses.
+- The East US 2 deployment uses GA `gpt-5.4-nano` `2026-03-17`, Global Standard, at 10K TPM. With native CAD Retail rates of `$0.2818/million` input tokens and `$1.7613/million` output tokens, a planning envelope of 3K input plus the enforced 1,000-completion-token cap is about CAD `$0.00261` per brief, `$0.0521` at one user's daily limit, or `$1.56` if that user exhausts the limit every day for 30 days. Reasoning effort is disabled for this extraction-style task.
 
 ## Architecture
 
@@ -38,6 +56,8 @@ flowchart LR
   SWA -->|managed Entra auth and auto-completed invitation| Identity[Static Web Apps identity]
   API -->|managed identity| Blob[(Blob Storage)]
   API -->|managed identity after owner approval| ACS[Azure Communication Services Email]
+  SWA -->|aliased comparison facts| API
+  API -->|managed identity, cited JSON only| Model[gpt-5.4-nano comparison deployment]
   ACS --> ManagedDomain[Azure-managed sender domain]
   Timer[Hourly UTC timer] -->|06:00 America/Toronto only| API
   API -->|server-side only| Retail[Azure Retail Prices API]
@@ -146,7 +166,7 @@ npm run build
 npm audit
 ```
 
-Current evidence: 62 web unit/property tests, 36 API tests, 15 application workflows, and 3 production PWA device profiles pass. Browser coverage includes automatic invitation completion, requester/approver access flows, desktop, Android, iPhone-sized metadata/layout, PDF/JSON downloads, mobile installation, secure offline cache boundaries, four-region isolation, model/SKU profile isolation, all five technical pricing domains, scenario sharing, no-overflow checks, and zero Axe violations. Both builds and linters pass.
+Current evidence: 68 web unit/property tests, 49 API tests, 15 application workflows, and 3 production PWA device profiles pass. Browser coverage includes automatic invitation completion, requester/approver access flows, desktop, Android, iPhone-sized metadata/layout, PDF/JSON downloads, mobile installation, secure offline cache boundaries, four-region isolation, model/SKU profile isolation, all five technical pricing domains, three-scenario comparison, aliased AI facts, no-overflow checks, and zero Axe violations. Both builds and linters pass.
 
 ## Rate policy
 
@@ -244,7 +264,7 @@ azd env set OPERATIONS_ALERT_EMAIL <operations-email> # optional
 azd env set ACCESS_EMAIL_REPLY_TO ritwickdutta@microsoft.com # optional override
 ```
 
-The approved deployment uses East US 2 for Static Web Apps Standard, Flex Consumption, LRS Blob Storage, and the 0.5 GB/day Log Analytics workspace. This hosting choice does not change the calculator's independent Canada Central, Canada East, East US, and East US 2 pricing scopes. Static Web Apps and Functions remain publicly reachable; Storage public network access and shared-key authentication are disabled, and the Function reaches Blob through a private endpoint with its user-assigned managed identity.
+The approved deployment uses East US 2 for Static Web Apps Standard, Flex Consumption, LRS Blob Storage, the 0.5 GB/day Log Analytics workspace, and the optional Global Standard comparison model. This hosting choice does not change the calculator's independent Canada Central, Canada East, East US, and East US 2 pricing scopes. Static Web Apps, Functions, and the Entra-authenticated model endpoint remain publicly reachable; Storage public network access and shared-key authentication are disabled, and the Function reaches Blob through a private endpoint with its user-assigned managed identity. The model account also disables local-key authentication.
 
 Provisioning requires permission to create a custom role definition and assignment at subscription scope, plus the application resources. Use an approved combination such as Contributor and Role Based Access Control Administrator. The custom role grants only `Microsoft.CognitiveServices/locations/models/read`.
 
@@ -284,11 +304,11 @@ Share the Static Web Apps URL only after access and health checks pass. Ask the 
 - Lean POC and Production presets communicate incomplete assumptions clearly.
 - Model-source filters, Foundry services, Hosted Agents, and Standard Agent Setup inputs match their architecture workflow.
 - Rate provenance and unavailable reasons are understandable without verbal explanation.
-- Saving, exporting, importing, and comparing scenarios works across two browsers.
+- Saving, exporting, importing, and comparing up to three scenarios works across two browsers; the generated brief uses aliases and cited deterministic facts only.
 - Desktop and mobile layouts are usable, and no confidential customer identifiers are entered in scenario names.
 
-Model quota, Marketplace acceptance, and provider terms are validation requirements for any architecture being estimated, but they do not block deployment of this calculator because it does not deploy Foundry models.
+Model quota, Marketplace acceptance, and provider terms remain validation requirements for each customer architecture being estimated. They are independent of the calculator's small, dedicated `gpt-5.4-nano` deployment used only for optional comparison narratives.
 
 The Production preset intentionally remains incomplete for six decisions that cannot be inferred defensibly: model-specific PTU capacity, Defender for AI transaction scope/rate, Purview workload/capacity, security revalidation labour, FinOps labour, and the support plan. Their exact unavailable reasons appear in provenance.
 
-No customer subscription credentials or customer-identifying shared scenario data are stored. Scenarios remain in each user's browser.
+No customer subscription credentials or customer-identifying shared scenario data are stored. Scenarios and scenario names remain in each user's browser; only bounded, aliased comparison facts can reach the optional model.

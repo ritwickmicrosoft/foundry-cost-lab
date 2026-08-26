@@ -1,19 +1,10 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { Check, Download, FileJson, FolderOpen, LoaderCircle, Play, Save, Trash2, Upload, X } from 'lucide-react'
+import { Check, Download, FileJson, FolderOpen, GitCompareArrows, LoaderCircle, Play, Save, Trash2, Upload, X } from 'lucide-react'
 import { useState } from 'react'
-import { computeCost } from '../domain/computeCost'
-import type { FoundryModelCatalogEntry } from '../domain/foundryCatalog'
 import { buildScenarioExport, parseScenarioExport } from '../domain/export'
-import { COST_TIERS, type CostConfig, type CostResult, type CostTier, type RateCard } from '../domain/types'
+import { MAX_COMPARISON_SCENARIOS } from '../domain/scenarioComparison'
+import type { CostConfig, CostResult, RateCard } from '../domain/types'
 import { labStorage, useLabStore } from '../state/useLabStore'
-import { formatMoney } from '../utils/format'
-
-const TIER_LABELS: Record<CostTier, string> = {
-  run: 'Run',
-  guardrail: 'Guardrail',
-  platform: 'Platform',
-  change: 'Change',
-}
 
 const safeFileName = (value: string) =>
   value
@@ -55,6 +46,7 @@ export function ScenarioActions({
   const loadScenario = useLabStore((state) => state.loadScenario)
   const deleteScenario = useLabStore((state) => state.deleteScenario)
   const toggleComparison = useLabStore((state) => state.toggleComparison)
+  const openComparison = useLabStore((state) => state.openComparison)
 
   const backupCurrent = () => {
     const exportedAt = new Date().toISOString()
@@ -185,12 +177,17 @@ export function ScenarioActions({
               ) : (
                 scenarios.map((scenario) => {
                   const compared = comparisonIds.includes(scenario.id)
+                  const selectionFull = comparisonIds.length >= MAX_COMPARISON_SCENARIOS && !compared
                   return (
                     <div key={scenario.id} className="scenario-row">
-                      <label className="check-control">
+                      <label
+                        className={`check-control${selectionFull ? ' check-control--disabled' : ''}`}
+                        title={selectionFull ? 'Remove one selected scenario to compare another.' : undefined}
+                      >
                         <input
                           type="checkbox"
                           checked={compared}
+                          disabled={selectionFull}
                           onChange={() => toggleComparison(scenario.id)}
                         />
                         <span className="check-control__box">{compared ? <Check aria-hidden="true" /> : null}</span>
@@ -226,71 +223,26 @@ export function ScenarioActions({
                 })
               )}
             </div>
+            <div className="scenario-compare-actions">
+              <span>
+                <strong>{comparisonIds.length}</strong> of {MAX_COMPARISON_SCENARIOS} selected
+                <small>Select two or three saved scenarios.</small>
+              </span>
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  className="button button--primary"
+                  disabled={comparisonIds.length < 2}
+                  onClick={openComparison}
+                >
+                  <GitCompareArrows aria-hidden="true" />
+                  Compare {comparisonIds.length >= 2 ? comparisonIds.length : ''}
+                </button>
+              </Dialog.Close>
+            </div>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
     </div>
-  )
-}
-
-export function ScenarioComparison({
-  currentResult,
-  rateCard,
-  modelCatalog,
-}: {
-  currentResult: CostResult
-  rateCard: RateCard
-  modelCatalog: readonly FoundryModelCatalogEntry[]
-}) {
-  const scenarios = useLabStore((state) => state.scenarios)
-  const comparisonIds = useLabStore((state) => state.comparisonIds)
-  const compared = scenarios.filter((scenario) => comparisonIds.includes(scenario.id))
-  if (compared.length === 0) return null
-
-  const rows = compared.map((scenario) => ({
-    scenario,
-    result: computeCost(scenario.config, rateCard, modelCatalog),
-  }))
-
-  return (
-    <section className="result-section comparison" aria-labelledby="comparison-title">
-      <div className="section-heading">
-        <div>
-          <span className="eyebrow">Saved against live</span>
-          <h2 id="comparison-title">Scenario comparison</h2>
-        </div>
-        <span className="line-count">Current rate card: {rateCard.asOf}</span>
-      </div>
-      <div className="comparison-table-wrap">
-        <table className="comparison-table">
-          <thead>
-            <tr>
-              <th>Scenario</th>
-              {COST_TIERS.map((tier) => <th key={tier}>{TIER_LABELS[tier]}</th>)}
-              <th>Total</th>
-              <th>Delta</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="comparison-table__live">
-              <th>Live configuration</th>
-              {COST_TIERS.map((tier) => <td key={tier}>{formatMoney(currentResult.tiers[tier].knownSubtotal)}</td>)}
-              <td>{formatMoney(currentResult.knownGrandTotal)}</td>
-              <td>-</td>
-            </tr>
-            {rows.map(({ scenario, result }) => (
-              <tr key={scenario.id}>
-                <th>{scenario.name}</th>
-                {COST_TIERS.map((tier) => <td key={tier}>{formatMoney(result.tiers[tier].knownSubtotal)}</td>)}
-                <td>{formatMoney(result.knownGrandTotal)}</td>
-                <td className={result.knownGrandTotal - currentResult.knownGrandTotal >= 0 ? 'delta-positive' : 'delta-negative'}>
-                  {formatMoney(result.knownGrandTotal - currentResult.knownGrandTotal)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
   )
 }
