@@ -244,30 +244,44 @@ test('models hosted runtime and all Standard Agent Setup resources', async ({ pa
 
 test('selects models across every Foundry source and adds Foundry services', async ({ page }) => {
   await page.goto('/')
-  await expect(page.locator('.catalog-snapshot').first()).toContainText('catalog models')
-  const source = page.getByLabel('Deployment source')
-  await expect(source.locator('option')).toHaveText([
+  await expect(page.getByRole('button', { name: 'Pay per use' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByLabel('Deployment source')).toHaveCount(0)
+  await page.getByRole('button', { name: /Filters/ }).click()
+  await expect(page.getByRole('button', { name: /Filters/ })).toHaveAttribute('aria-controls', 'model-filter-panel')
+  await expect(page.getByRole('region', { name: 'Model filters' })).toBeVisible()
+  const provider = page.getByLabel('Provider')
+  await expect(provider.locator('option')).toHaveText([
+    'All providers',
     'Direct from Azure',
     'Foundry Labs',
-    'Hugging Face',
     'Fireworks on Foundry',
   ])
 
-  await source.selectOption('fireworks')
+  await provider.selectOption('fireworks')
   await page.getByLabel('Find model').fill('FW-MiniMax-M2.5')
   await page.getByRole('radio', { name: /FW-MiniMax-M2.5/ }).check()
+  await page.getByRole('button', { name: 'Deployment details' }).click()
+  await expect(page.getByRole('region', { name: 'Deployment details' })).toBeVisible()
   await expect(page.getByLabel('Deployment option')).toHaveValue('Serverless API')
+  await page.getByRole('button', { name: 'Pricing details' }).click()
+  await expect(page.getByRole('region', { name: 'Pricing details' })).toBeVisible()
   await page.getByLabel('Input rate fallback').fill('2')
   await page.getByLabel('Output rate fallback').fill('8')
   await expect(page.locator('.cost-line').filter({ hasText: 'FW-MiniMax-M2.5' }).first()).toBeVisible()
 
-  await source.selectOption('hugging-face')
+  await page.getByRole('button', { name: 'Dedicated endpoint' }).click()
+  await expect(page.getByRole('button', { name: 'Dedicated endpoint' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('radio', { name: /qwen--qwen3.6-27b/ })).toBeChecked()
+  await page.getByRole('button', { name: /Filters/ }).click()
+  await expect(page.getByLabel('Provider').locator('option')).toHaveText(['All providers', 'Hugging Face'])
   await page.getByLabel('Find model').fill('zai-org--glm-5.2-fp8')
   await page.getByRole('radio', { name: /zai-org--glm-5.2-fp8/ }).check()
-  await expect(page.getByLabel('Deployment option')).toHaveValue('Managed Compute')
   await page.getByLabel('Instances').fill('2')
+  await page.getByRole('button', { name: 'Custom availability' }).click()
   await page.getByLabel('Hours / month').fill('100')
-  await page.getByLabel('VM rate').fill('5')
+  await page.getByLabel('VM hourly rate').fill('5')
+  await expect(page.getByText('Estimated compute')).toBeVisible()
+  await expect(page.getByText('$1,000.00 / month')).toBeVisible()
   const managedCompute = page.locator('.cost-line').filter({ hasText: 'zai-org--glm-5.2-fp8' })
   await expect(managedCompute).toContainText('managed compute')
   await expect(managedCompute).toContainText('$1,000.00')
@@ -290,6 +304,7 @@ test('isolates model SKU profiles and prices every technical domain', async ({ p
   await expect(readiness.getByText('Approval blocked')).toBeVisible()
   await expect(readiness.getByText(/Input rate.*Output rate/)).toBeVisible()
 
+  await page.getByRole('button', { name: 'Pricing details' }).click()
   await page.getByLabel('Input rate fallback').fill('4.25')
   await page.getByLabel('Output rate fallback').fill('21.5')
   await expect(readiness.getByText(/Model\/SKU fallback source.*Model\/SKU fallback as-of date/)).toBeVisible()
@@ -301,6 +316,7 @@ test('isolates model SKU profiles and prices every technical domain', async ({ p
   await expect(readiness.getByText('Approval blocked')).toHaveCount(0)
   await expect(readiness.getByText('Enterprise Marketplace offer').first()).toBeVisible()
 
+  await page.getByRole('button', { name: 'Deployment details' }).click()
   await page.getByLabel('Deployment SKU').selectOption('data-zone-standard')
   await expect(page.getByLabel('Input rate fallback')).toHaveValue('')
   await expect(readiness.getByText('Approval blocked')).toBeVisible()
