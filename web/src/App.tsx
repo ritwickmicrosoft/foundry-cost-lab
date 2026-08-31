@@ -1,7 +1,9 @@
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { AlertTriangle, MessageCircle, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
 import { ConfigPanel } from './components/ConfigPanel'
 import { AccessRequestsDialog } from './components/AccessRequestsDialog'
+import { GuidedEstimate, GUIDED_ESTIMATE_STORAGE_KEY } from './components/GuidedEstimate'
 import { PwaControls } from './components/PwaControls'
 import { ResultsPanel } from './components/ResultsPanel'
 import { ScenarioActions } from './components/ScenarioManager'
@@ -14,11 +16,31 @@ import { useRateDiff } from './hooks/useRateDiff'
 import { labStorage, useLabStore } from './state/useLabStore'
 import './App.css'
 
+const guidedEstimateStartsOpen = () => {
+  if (new URLSearchParams(window.location.search).get('guide') === '1') return true
+  try {
+    return window.localStorage.getItem(GUIDED_ESTIMATE_STORAGE_KEY) !== 'complete'
+  } catch {
+    return true
+  }
+}
+
+const markGuidedEstimateComplete = () => {
+  try {
+    window.localStorage.setItem(GUIDED_ESTIMATE_STORAGE_KEY, 'complete')
+  } catch {
+    // The current session can still continue when browser storage is unavailable.
+  }
+}
+
 function App() {
   const config = useLabStore((state) => state.config)
   const updateConfig = useLabStore((state) => state.updateConfig)
+  const replaceConfig = useLabStore((state) => state.replaceConfig)
   const applyPreset = useLabStore((state) => state.applyPreset)
   const comparisonOpen = useLabStore((state) => state.comparisonOpen)
+  const closeComparison = useLabStore((state) => state.closeComparison)
+  const [guidedEstimateOpen, setGuidedEstimateOpen] = useState(guidedEstimateStartsOpen)
   const { rateCard, loading, usingFallback, notice } = useRateCard(config.region)
   const { catalog, notice: catalogNotice } = useFoundryCatalog(config.region)
   const rateDiff = useRateDiff(config.region)
@@ -33,6 +55,22 @@ function App() {
     config.platform.standardAgentSetup.blobStorage.enabled
     ? 'Canada East has no availability zones. Agent file storage is priced as Hot LRS, which has lower resilience than the Hot ZRS design used in Canada Central.'
     : null
+  const guidedActive = guidedEstimateOpen && !comparisonOpen
+
+  const closeGuide = () => {
+    markGuidedEstimateComplete()
+    setGuidedEstimateOpen(false)
+  }
+
+  const applyGuidedEstimate = (draft: typeof config) => {
+    replaceConfig(draft)
+    closeGuide()
+  }
+
+  const openGuide = () => {
+    closeComparison()
+    setGuidedEstimateOpen(true)
+  }
 
   return (
     <Tooltip.Provider delayDuration={250} skipDelayDuration={100}>
@@ -63,6 +101,9 @@ function App() {
             </div>
             <AccessRequestsDialog />
             <PwaControls />
+            <button type="button" className="button button--quiet" onClick={openGuide}>
+              <MessageCircle aria-hidden="true" />Guided setup
+            </button>
             <ScenarioActions config={config} result={result} rateCard={rateCard} />
           </div>
         </header>
@@ -82,17 +123,27 @@ function App() {
           </aside>
         ) : null}
 
-        <div className={`workspace${comparisonOpen ? ' workspace--comparison' : ''}`}>
-          {!comparisonOpen ? <ConfigPanel config={config} updateConfig={updateConfig} applyPreset={applyPreset} catalog={catalog} /> : null}
-          <main className={`readout${comparisonOpen ? ' readout--comparison' : ''}`}>
+        <div className={`workspace${comparisonOpen ? ' workspace--comparison' : guidedActive ? ' workspace--guide' : ''}`}>
+          {!comparisonOpen && !guidedActive ? <ConfigPanel config={config} updateConfig={updateConfig} applyPreset={applyPreset} catalog={catalog} /> : null}
+          <main className={`readout${comparisonOpen ? ' readout--comparison' : guidedActive ? ' readout--guide' : ''}`}>
             {comparisonOpen ? <ScenarioComparisonWorkspace /> : (
-              <ResultsPanel
-                result={result}
-                config={config}
-                rateCard={rateCard}
-                rateDiff={rateDiff}
-                modelCatalog={catalog.models}
-              />
+              guidedActive ? (
+                <GuidedEstimate
+                  currentConfig={config}
+                  rateCard={rateCard}
+                  catalog={catalog}
+                  onApply={applyGuidedEstimate}
+                  onSkip={closeGuide}
+                />
+              ) : (
+                <ResultsPanel
+                  result={result}
+                  config={config}
+                  rateCard={rateCard}
+                  rateDiff={rateDiff}
+                  modelCatalog={catalog.models}
+                />
+              )
             )}
             <footer className="app-footer">
               <strong>Planning estimate only.</strong>

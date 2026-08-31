@@ -189,6 +189,125 @@ describe('computeCost', () => {
     )
   })
 
+  it('normalizes shared traffic across distinct model deployments', () => {
+    const input = createPreset('poc')
+    const baselineModelCost = computeCost(input, fixtureRateCard()).lines
+      .filter((line) => line.blockId === 'commercialModel')
+      .reduce((sum, line) => sum + (line.amount ?? 0), 0)
+    const fastModel = structuredClone(input.commercialModel)
+    fastModel.modelId = 'custom/fast-model/1'
+    fastModel.deploymentSku = 'marketplace'
+    fastModel.inputRateKey = 'portfolio.fast.input'
+    fastModel.cachedInputRateKey = 'portfolio.fast.cachedInput'
+    fastModel.outputRateKey = 'portfolio.fast.output'
+    fastModel.customInputRateCadPerMillion = 2
+    fastModel.customOutputRateCadPerMillion = 4
+    input.modelPortfolio = {
+      strategy: 'cost-optimized',
+      deployments: [{ id: 'fast', label: 'Fast deployment', model: fastModel }],
+      routes: [
+        { id: 'primary', label: 'Complex requests', role: 'primary', deploymentId: 'primary', mode: 'traffic-share', trafficPercent: 70 },
+        { id: 'fast', label: 'Routine requests', role: 'fast', deploymentId: 'fast', mode: 'traffic-share', trafficPercent: 30 },
+      ],
+    }
+
+    const result = computeCost(input, fixtureRateCard())
+    const primaryLines = result.lines.filter((line) => line.id.startsWith('run-model-primary-'))
+    const fastLines = result.lines.filter((line) => line.id.startsWith('run-model-fast-'))
+    const fastInput = fastLines.filter((line) => line.id.endsWith('-input'))
+    const fastOutput = fastLines.filter((line) => line.id.endsWith('-output'))
+
+    expect(primaryLines.reduce((sum, line) => sum + (line.amount ?? 0), 0)).toBeCloseTo(baselineModelCost * 0.7)
+    expect(fastInput.reduce((sum, line) => sum + line.quantity, 0)).toBeCloseTo(result.metrics.primaryInputTokens * 0.3 / 1_000_000)
+    expect(fastOutput.reduce((sum, line) => sum + line.quantity, 0)).toBeCloseTo(result.metrics.primaryOutputTokens * 0.3 / 1_000_000)
+    expect(fastLines.every((line) => line.amount !== null)).toBe(true)
+  })
+
+  it('adds specialist calls without reducing shared primary traffic', () => {
+    const input = createPreset('poc')
+    const reasoner = structuredClone(input.commercialModel)
+    reasoner.modelId = 'custom/reasoning-model/1'
+    reasoner.deploymentSku = 'marketplace'
+    reasoner.inputRateKey = 'portfolio.reasoner.input'
+    reasoner.outputRateKey = 'portfolio.reasoner.output'
+    reasoner.customInputRateCadPerMillion = 8
+    reasoner.customOutputRateCadPerMillion = 24
+    input.modelPortfolio = {
+      strategy: 'quality-focused',
+      deployments: [{ id: 'reasoner', label: 'Reasoning deployment', model: reasoner }],
+      routes: [
+        { id: 'primary', label: 'All requests', role: 'primary', deploymentId: 'primary', mode: 'traffic-share', trafficPercent: 100 },
+        { id: 'reasoner', label: 'Reasoning assist', role: 'reasoning', deploymentId: 'reasoner', mode: 'additive', trafficPercent: 20 },
+      ],
+    }
+
+    const result = computeCost(input, fixtureRateCard())
+    const primaryInput = result.lines
+      .filter((line) => line.id.startsWith('run-model-primary-') && line.id.endsWith('-input'))
+      .reduce((sum, line) => sum + line.quantity, 0)
+    const reasonerInput = result.lines
+      .filter((line) => line.id.startsWith('run-model-reasoner-') && line.id.endsWith('-input'))
+      .reduce((sum, line) => sum + line.quantity, 0)
+
+    expect(primaryInput).toBeCloseTo(result.metrics.primaryInputTokens / 1_000_000)
+    expect(reasonerInput).toBeCloseTo(result.metrics.primaryInputTokens * 0.2 / 1_000_000)
+  })
+
+  it('charges a shared managed-compute deployment once across multiple routes', () => {
+    const input = createPreset('poc')
+    const sharedModel = structuredClone(input.commercialModel)
+    sharedModel.modelId = 'custom/shared-managed/1'
+    sharedModel.deploymentOption = 'Managed Compute'
+    sharedModel.deploymentSku = 'managed-compute'
+    sharedModel.billingBasis = 'managed-compute'
+    sharedModel.managedCompute = { instances: 2, hoursPerMonth: 100, instanceHourlyRateCad: 5 }
+    input.modelPortfolio = {
+      strategy: 'custom',
+      deployments: [{ id: 'shared', label: 'Shared endpoint', model: sharedModel }],
+      routes: [
+        { id: 'fast', label: 'Fast route', role: 'fast', deploymentId: 'shared', mode: 'traffic-share', trafficPercent: 100 },
+        { id: 'reasoning', label: 'Reasoning route', role: 'reasoning', deploymentId: 'shared', mode: 'additive', trafficPercent: 20 },
+      ],
+    }
+
+    const managedLines = computeCost(input, fixtureRateCard()).lines.filter(
+      (line) => line.id === 'run-model-shared-managed-compute',
+    )
+
+    expect(managedLines).toHaveLength(1)
+    expect(managedLines[0]?.amount).toBe(1_000)
+    expect(managedLines[0]?.detail).toContain('Fast route, Reasoning route')
+  })
+
+  it('marks incomplete shared traffic while showing normalized preview costs', () => {
+    const input = createPreset('poc')
+    const fastModel = structuredClone(input.commercialModel)
+    fastModel.modelId = 'custom/fast-model/1'
+    fastModel.deploymentSku = 'marketplace'
+    fastModel.inputRateKey = 'portfolio.fast.input'
+    fastModel.outputRateKey = 'portfolio.fast.output'
+    fastModel.customInputRateCadPerMillion = 2
+    fastModel.customOutputRateCadPerMillion = 4
+    input.modelPortfolio = {
+      strategy: 'custom',
+      deployments: [{ id: 'fast', label: 'Fast deployment', model: fastModel }],
+      routes: [
+        { id: 'primary', label: 'Primary', role: 'primary', deploymentId: 'primary', mode: 'traffic-share', trafficPercent: 50 },
+        { id: 'fast', label: 'Fast', role: 'fast', deploymentId: 'fast', mode: 'traffic-share', trafficPercent: 30 },
+      ],
+    }
+
+    const result = computeCost(input, fixtureRateCard())
+    const allocation = result.lines.find((line) => line.id === 'run-model-routing-allocation')
+    const primaryInput = result.lines
+      .filter((line) => line.id.startsWith('run-model-primary-') && line.id.endsWith('-input'))
+      .reduce((sum, line) => sum + line.quantity, 0)
+
+    expect(result.complete).toBe(false)
+    expect(allocation).toMatchObject({ amount: null, quantity: 80 })
+    expect(primaryInput).toBeCloseTo(result.metrics.primaryInputTokens * 0.625 / 1_000_000)
+  })
+
   it('uses Batch-specific manual rates when exact Batch meters are unavailable', () => {
     const input = createPreset('poc')
     const card = fixtureRateCard()

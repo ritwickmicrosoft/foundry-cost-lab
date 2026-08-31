@@ -24,6 +24,7 @@ describe('PDF estimate export', () => {
     expect(source).toContain('/Title (Foundry Cost Lab - Production baseline)')
     expect(source).toContain('native CAD rate card')
     expect(source).toContain('(Scenario basis)')
+    expect(source).toContain('(Model portfolio)')
     expect(source).toContain('(Monthly cost by tier)')
     expect(source).toContain('(Detailed monthly cost lines)')
     expect(source).toContain('(Unpriced decisions)')

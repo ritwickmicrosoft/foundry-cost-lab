@@ -132,8 +132,8 @@ function Breakeven({ result }: { result: CostResult }) {
     <section className="result-section" aria-labelledby="breakeven-title">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Commercial model</span>
-          <h2 id="breakeven-title">PTU vs PAYG breakeven</h2>
+          <span className="eyebrow">Primary model</span>
+          <h2 id="breakeven-title">Primary deployment PTU vs PAYG</h2>
         </div>
         <Gauge aria-hidden="true" />
       </div>
@@ -170,7 +170,7 @@ function PricingReadinessPanel({ readiness }: { readiness: PricingReadiness }) {
 
       <div className="pricing-context">
         <div>
-          <span>Model</span>
+          <span>Model portfolio</span>
           <strong>{readiness.modelLabel}</strong>
           <small>{readiness.modelSource}</small>
         </div>
@@ -209,7 +209,7 @@ function PricingReadinessPanel({ readiness }: { readiness: PricingReadiness }) {
           </div>
         ))}
         {readiness.dimensions.length === 0 ? (
-          <div className="pricing-matrix__empty">Commercial model pricing is disabled.</div>
+          <div className="pricing-matrix__empty">Model pricing is disabled.</div>
         ) : null}
       </div>
 
@@ -218,7 +218,7 @@ function PricingReadinessPanel({ readiness }: { readiness: PricingReadiness }) {
           <AlertCircle aria-hidden="true" />
           <div>
             <strong>Approval blocked</strong>
-            <small>Complete the selected model/SKU price profile under Run → Commercial model.</small>
+            <small>Complete each unpriced deployment under Run → Primary model → Model portfolio.</small>
             <span>{readiness.decisionBlockers.join(' · ')}</span>
           </div>
         </div>

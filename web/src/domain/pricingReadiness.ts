@@ -5,7 +5,7 @@ import {
   type FoundryModelCatalogEntry,
 } from './foundryCatalog'
 import { findModelPriceProfile } from './modelPriceProfiles'
-import { REGION_LABELS, type CostConfig, type CostLine, type CostResult, type RateCard } from './types'
+import { REGION_LABELS, type CommercialModelConfig, type CostConfig, type CostLine, type CostResult, type RateCard } from './types'
 
 export type PricingCoverageStatus = 'exact' | 'manual' | 'mixed' | 'unpriced' | 'inactive'
 
@@ -40,14 +40,18 @@ export interface PricingReadiness {
   decisionBlockers: string[]
 }
 
-export function processingBoundary(config: CostConfig) {
-  const sku = config.commercialModel.deploymentSku
+function deploymentProcessingBoundary(model: CommercialModelConfig, config: CostConfig) {
+  const sku = model.deploymentSku
   if (sku.startsWith('global-')) return 'Global processing'
   if (sku.startsWith('data-zone-')) return 'Data Zone processing'
   if (sku.startsWith('regional-')) return `${REGION_LABELS[config.region]} processing`
   if (sku === 'managed-compute') return `${REGION_LABELS[config.region]} managed compute`
   if (sku === 'developer') return 'Developer offer processing terms'
   return 'Provider offer processing boundary'
+}
+
+export function processingBoundary(config: CostConfig) {
+  return deploymentProcessingBoundary(config.commercialModel, config)
 }
 
 function coverageStatus(lines: CostLine[], active: boolean): PricingCoverageStatus {
@@ -64,100 +68,104 @@ export function buildPricingReadiness(
   result: CostResult,
   modelCatalog?: readonly FoundryModelCatalogEntry[],
 ): PricingReadiness {
-  const model = getFoundryModel(config.commercialModel.modelId, modelCatalog)
-  const profile = findModelPriceProfile(config.commercialModel)
-
-  const dimension = (
-    id: string,
-    label: string,
-    rateKey: string,
-    profileValue: number | null,
-    fallbackUnit: string,
-    required = true,
-  ): ModelPriceDimension => {
-    const rate = rateCard.rates[rateKey]
-    if (rate?.value !== null && rate?.value !== undefined) {
-      return {
-        id,
-        label,
-        value: rate.value,
-        unit: rate.unit,
-        status: rate.maintenance === 'synced' ? 'exact' : 'manual',
-        source: rate.source,
-        asOf: rate.asOf,
-        required,
-        origin: 'rate-card',
-      }
-    }
-    if (profileValue !== null) {
-      return {
-        id,
-        label,
-        value: profileValue,
-        unit: fallbackUnit,
-        status: 'manual',
-        source: profile?.source.trim() || 'Source required',
-        asOf: profile?.asOf || 'Date required',
-        required,
-        origin: 'profile',
-      }
-    }
-    return {
-      id,
-      label,
-      value: null,
-      unit: rate?.unit ?? fallbackUnit,
-      status: 'unpriced',
-      source: rate?.unavailableReason ?? 'No exact rate or matching profile',
-      asOf: rate?.asOf ?? rateCard.asOf,
-      required,
-      origin: 'none',
-    }
-  }
-
-  const dimensions: ModelPriceDimension[] = []
   const commercial = config.commercialModel
-  if (commercial.enabled) {
-    if (commercial.billingBasis === 'managed-compute') {
-      dimensions.push(dimension(
-        'managed-compute',
-        'Managed compute',
-        `${commercial.inputRateKey}.managedComputeHour`,
-        commercial.managedCompute.instanceHourlyRateCad,
-        'CAD/instance-hour',
-      ))
-    } else if (commercial.billingBasis === 'usage') {
-      dimensions.push(dimension(
-        'usage',
-        `Usage (${commercial.usage.quantityUnit})`,
-        `${commercial.inputRateKey}.usage`,
-        commercial.usage.unitRateCad,
-        `CAD/${commercial.usage.quantityUnit}`,
-      ))
-    } else if (commercial.purchaseMode === 'batch') {
-      dimensions.push(
-        dimension('batch-input', 'Batch input', commercial.batchInputRateKey, commercial.customBatchInputRateCadPerMillion, 'CAD/million tokens'),
-        dimension('batch-output', 'Batch output', commercial.batchOutputRateKey, commercial.customBatchOutputRateCadPerMillion, 'CAD/million tokens'),
-      )
-    } else if (commercial.purchaseMode === 'ptu') {
-      dimensions.push(
-        dimension('ptu', 'Provisioned throughput', commercial.ptuHourlyRateKey, commercial.customPtuHourlyRateCad, 'CAD/PTU-hour'),
-        dimension('overflow-input', 'PAYG overflow input', commercial.inputRateKey, commercial.customInputRateCadPerMillion, 'CAD/million tokens', false),
-        dimension('overflow-cached-input', 'PAYG overflow cached input', commercial.cachedInputRateKey, commercial.customCachedInputRateCadPerMillion, 'CAD/million cached tokens', false),
-        dimension('overflow-output', 'PAYG overflow output', commercial.outputRateKey, commercial.customOutputRateCadPerMillion, 'CAD/million tokens', false),
-      )
-    } else {
-      dimensions.push(
-        dimension('input', 'Input', commercial.inputRateKey, commercial.customInputRateCadPerMillion, 'CAD/million tokens'),
-        dimension('cached-input', 'Cached input', commercial.cachedInputRateKey, commercial.customCachedInputRateCadPerMillion, 'CAD/million cached tokens', commercial.cachedInputPercent > 0),
-        dimension('output', 'Output', commercial.outputRateKey, commercial.customOutputRateCadPerMillion, 'CAD/million tokens'),
-      )
+  const portfolioActive = config.modelPortfolio.deployments.length > 0 || config.modelPortfolio.routes.length > 1
+  const referencedDeploymentIds = new Set(
+    config.modelPortfolio.routes.filter((route) => route.trafficPercent > 0).map((route) => route.deploymentId),
+  )
+  const modelEntries = [
+    ...(!portfolioActive || referencedDeploymentIds.has('primary')
+      ? [{ id: 'primary', label: portfolioActive ? 'Primary' : '', model: commercial }]
+      : []),
+    ...config.modelPortfolio.deployments
+      .filter((deployment) => referencedDeploymentIds.has(deployment.id))
+      .map((deployment) => ({ id: deployment.id, label: deployment.label, model: deployment.model })),
+  ].filter((entry) => entry.model.enabled)
+
+  const dimensionsFor = (entry: typeof modelEntries[number]): ModelPriceDimension[] => {
+    const profile = findModelPriceProfile(entry.model)
+    const prefixedLabel = (label: string) => entry.label ? `${entry.label} · ${label}` : label
+    const dimension = (
+      id: string,
+      label: string,
+      rateKey: string,
+      profileValue: number | null,
+      fallbackUnit: string,
+      required = true,
+    ): ModelPriceDimension => {
+      const rate = rateCard.rates[rateKey]
+      if (rate?.value !== null && rate?.value !== undefined) {
+        return {
+          id: entry.label ? `${entry.id}:${id}` : id,
+          label: prefixedLabel(label),
+          value: rate.value,
+          unit: rate.unit,
+          status: rate.maintenance === 'synced' ? 'exact' : 'manual',
+          source: rate.source,
+          asOf: rate.asOf,
+          required,
+          origin: 'rate-card',
+        }
+      }
+      if (profileValue !== null) {
+        return {
+          id: entry.label ? `${entry.id}:${id}` : id,
+          label: prefixedLabel(label),
+          value: profileValue,
+          unit: fallbackUnit,
+          status: 'manual',
+          source: profile?.source.trim() || 'Source required',
+          asOf: profile?.asOf || 'Date required',
+          required,
+          origin: 'profile',
+        }
+      }
+      return {
+        id: entry.label ? `${entry.id}:${id}` : id,
+        label: prefixedLabel(label),
+        value: null,
+        unit: rate?.unit ?? fallbackUnit,
+        status: 'unpriced',
+        source: rate?.unavailableReason ?? 'No exact rate or matching profile',
+        asOf: rate?.asOf ?? rateCard.asOf,
+        required,
+        origin: 'none',
+      }
     }
+
+    const model = entry.model
+    if (model.billingBasis === 'managed-compute') {
+      return [dimension('managed-compute', 'Managed compute', `${model.inputRateKey}.managedComputeHour`, model.managedCompute.instanceHourlyRateCad, 'CAD/instance-hour')]
+    }
+    if (model.billingBasis === 'usage') {
+      return [dimension('usage', `Usage (${model.usage.quantityUnit})`, `${model.inputRateKey}.usage`, model.usage.unitRateCad, `CAD/${model.usage.quantityUnit}`)]
+    }
+    if (model.purchaseMode === 'batch') {
+      return [
+        dimension('batch-input', 'Batch input', model.batchInputRateKey, model.customBatchInputRateCadPerMillion, 'CAD/million tokens'),
+        dimension('batch-output', 'Batch output', model.batchOutputRateKey, model.customBatchOutputRateCadPerMillion, 'CAD/million tokens'),
+      ]
+    }
+    if (model.purchaseMode === 'ptu') {
+      return [
+        dimension('ptu', 'Provisioned throughput', model.ptuHourlyRateKey, model.customPtuHourlyRateCad, 'CAD/PTU-hour'),
+        dimension('overflow-input', 'PAYG overflow input', model.inputRateKey, model.customInputRateCadPerMillion, 'CAD/million tokens', false),
+        dimension('overflow-cached-input', 'PAYG overflow cached input', model.cachedInputRateKey, model.customCachedInputRateCadPerMillion, 'CAD/million cached tokens', false),
+        dimension('overflow-output', 'PAYG overflow output', model.outputRateKey, model.customOutputRateCadPerMillion, 'CAD/million tokens', false),
+      ]
+    }
+    return [
+      dimension('input', 'Input', model.inputRateKey, model.customInputRateCadPerMillion, 'CAD/million tokens'),
+      dimension('cached-input', 'Cached input', model.cachedInputRateKey, model.customCachedInputRateCadPerMillion, 'CAD/million cached tokens', model.cachedInputPercent > 0),
+      dimension('output', 'Output', model.outputRateKey, model.customOutputRateCadPerMillion, 'CAD/million tokens'),
+    ]
   }
+
+  const dimensions = modelEntries.flatMap(dimensionsFor)
 
   const requiredDimensions = dimensions.filter((entry) => entry.required)
   const dimensionStatuses = new Set(requiredDimensions.map((entry) => entry.status))
-  const modelStatus: PricingCoverageStatus = !commercial.enabled
+  const modelStatus: PricingCoverageStatus = modelEntries.length === 0
     ? 'inactive'
     : requiredDimensions.some((entry) => entry.status === 'unpriced')
       ? 'unpriced'
@@ -198,22 +206,36 @@ export function buildPricingReadiness(
   const decisionBlockers = requiredDimensions
     .filter((entry) => entry.status === 'unpriced')
     .map((entry) => `${entry.label} rate`)
-  if (commercial.purchaseMode === 'ptu' && commercial.ptuCapacityTokensPerUnitMonth === null) {
-    decisionBlockers.push('PTU token capacity per unit')
-  }
-  const profileDimensions = dimensions.filter((entry) => entry.origin === 'profile')
-  if (profileDimensions.length > 0 && !profile?.source.trim()) {
-    decisionBlockers.push('Model/SKU fallback source')
-  }
-  if (profileDimensions.length > 0 && !profile?.asOf) {
-    decisionBlockers.push('Model/SKU fallback as-of date')
+  for (const entry of modelEntries) {
+    if (entry.model.purchaseMode === 'ptu' && entry.model.ptuCapacityTokensPerUnitMonth === null) {
+      decisionBlockers.push(`${entry.label ? `${entry.label} ` : ''}PTU token capacity per unit`)
+    }
+    const profile = findModelPriceProfile(entry.model)
+    const profileDimensions = dimensions.filter(
+      (dimension) => (entry.label ? dimension.id.startsWith(`${entry.id}:`) : !dimension.id.includes(':')) &&
+        dimension.origin === 'profile',
+    )
+    if (profileDimensions.length > 0 && !profile?.source.trim()) {
+      decisionBlockers.push(`${entry.label ? `${entry.label} ` : ''}Model/SKU fallback source`)
+    }
+    if (profileDimensions.length > 0 && !profile?.asOf) {
+      decisionBlockers.push(`${entry.label ? `${entry.label} ` : ''}Model/SKU fallback as-of date`)
+    }
   }
 
+  const catalogModels = modelEntries.map((entry) => getFoundryModel(entry.model.modelId, modelCatalog))
+  const skuLabels = new Set(modelEntries.map((entry) => MODEL_DEPLOYMENT_SKU_LABELS[entry.model.deploymentSku]))
+  const boundaries = new Set(modelEntries.map((entry) => deploymentProcessingBoundary(entry.model, config)))
+
   return {
-    modelLabel: model ? `${model.name} ${model.version}` : commercial.modelId,
-    modelSource: model ? MODEL_SOURCE_LABELS[model.source] : 'Custom catalog model',
-    deploymentSkuLabel: MODEL_DEPLOYMENT_SKU_LABELS[commercial.deploymentSku],
-    processingBoundary: processingBoundary(config),
+    modelLabel: portfolioActive
+      ? `${config.modelPortfolio.routes.filter((route) => route.trafficPercent > 0).length} routed model roles`
+      : catalogModels[0] ? `${catalogModels[0].name} ${catalogModels[0].version}` : commercial.modelId,
+    modelSource: portfolioActive
+      ? `${modelEntries.length} deployments · ${config.modelPortfolio.strategy.replaceAll('-', ' ')}`
+      : catalogModels[0] ? MODEL_SOURCE_LABELS[catalogModels[0].source] : 'Custom catalog model',
+    deploymentSkuLabel: skuLabels.size === 1 ? [...skuLabels][0]! : 'Mixed deployment SKUs',
+    processingBoundary: boundaries.size === 1 ? [...boundaries][0]! : 'Mixed processing boundaries',
     modelStatus,
     dimensions,
     blocks,

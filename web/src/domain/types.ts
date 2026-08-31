@@ -30,6 +30,9 @@ export type Posture = 'poc' | 'production'
 export type CosmosBillingMode = 'provisioned' | 'serverless'
 export type ModelSourceId = 'direct-azure' | 'foundry-labs' | 'hugging-face' | 'fireworks'
 export type ModelBillingBasis = 'tokens' | 'managed-compute' | 'usage'
+export type ModelPortfolioStrategy = 'single' | 'cost-optimized' | 'quality-focused' | 'multimodal' | 'custom'
+export type ModelRouteRole = 'primary' | 'fast' | 'reasoning' | 'multimodal'
+export type ModelRouteMode = 'traffic-share' | 'additive'
 export type ToolBillingScope = 'global' | 'regional'
 export type AgenticReasoningEffort = 'minimum' | 'low'
 
@@ -46,6 +49,62 @@ export interface ModelPriceProfile {
   ptuHourlyRateCad: number | null
   managedComputeHourlyRateCad: number | null
   usageUnitRateCad: number | null
+}
+
+export interface CommercialModelConfig {
+  enabled: boolean
+  modelId: string
+  deploymentOption: string
+  deploymentSku: ModelDeploymentSku
+  billingBasis: ModelBillingBasis
+  purchaseMode: PurchaseMode
+  inputRateKey: string
+  cachedInputRateKey: string
+  outputRateKey: string
+  batchInputRateKey: string
+  batchOutputRateKey: string
+  ptuHourlyRateKey: string
+  ptuUnits: number
+  ptuCapacityTokensPerUnitMonth: number | null
+  customInputRateCadPerMillion: number | null
+  customCachedInputRateCadPerMillion: number | null
+  customOutputRateCadPerMillion: number | null
+  customBatchInputRateCadPerMillion: number | null
+  customBatchOutputRateCadPerMillion: number | null
+  customPtuHourlyRateCad: number | null
+  managedCompute: {
+    instanceHourlyRateCad: number | null
+    instances: number
+    hoursPerMonth: number
+  }
+  usage: {
+    monthlyQuantity: number
+    quantityUnit: string
+    unitRateCad: number | null
+  }
+  cachedInputPercent: number
+  priceProfiles: ModelPriceProfile[]
+}
+
+export interface ModelPortfolioDeployment {
+  id: string
+  label: string
+  model: CommercialModelConfig
+}
+
+export interface ModelPortfolioRoute {
+  id: string
+  label: string
+  role: ModelRouteRole
+  deploymentId: string
+  mode: ModelRouteMode
+  trafficPercent: number
+}
+
+export interface ModelPortfolioConfig {
+  strategy: ModelPortfolioStrategy
+  deployments: ModelPortfolioDeployment[]
+  routes: ModelPortfolioRoute[]
 }
 
 export const HOSTED_AGENT_SANDBOXES = {
@@ -111,40 +170,8 @@ export interface CostConfig {
     outputTokensPerTurn: number
     mcpSchemaTokensPerTurn: number
   }
-  commercialModel: {
-    enabled: boolean
-    modelId: string
-    deploymentOption: string
-    deploymentSku: ModelDeploymentSku
-    billingBasis: ModelBillingBasis
-    purchaseMode: PurchaseMode
-    inputRateKey: string
-    cachedInputRateKey: string
-    outputRateKey: string
-    batchInputRateKey: string
-    batchOutputRateKey: string
-    ptuHourlyRateKey: string
-    ptuUnits: number
-    ptuCapacityTokensPerUnitMonth: number | null
-    customInputRateCadPerMillion: number | null
-    customCachedInputRateCadPerMillion: number | null
-    customOutputRateCadPerMillion: number | null
-    customBatchInputRateCadPerMillion: number | null
-    customBatchOutputRateCadPerMillion: number | null
-    customPtuHourlyRateCad: number | null
-    managedCompute: {
-      instanceHourlyRateCad: number | null
-      instances: number
-      hoursPerMonth: number
-    }
-    usage: {
-      monthlyQuantity: number
-      quantityUnit: string
-      unitRateCad: number | null
-    }
-    cachedInputPercent: number
-    priceProfiles: ModelPriceProfile[]
-  }
+  commercialModel: CommercialModelConfig
+  modelPortfolio: ModelPortfolioConfig
   hostedAgent: {
     enabled: boolean
     sandboxSize: HostedAgentSandboxSize

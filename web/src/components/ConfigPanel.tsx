@@ -15,6 +15,7 @@ import { getFoundryModel, MODEL_SOURCE_LABELS, type ActiveFoundryCatalog } from 
 import { ConfigGroup, NumberField, SegmentedControl, SliderField, ToggleRow } from './Controls'
 import { FoundryServicesConfigurator } from './FoundryServicesConfigurator'
 import { ModelCatalogConfigurator } from './ModelCatalogConfigurator'
+import { ModelPortfolioConfigurator } from './ModelPortfolioConfigurator'
 
 interface ConfigPanelProps {
   config: CostConfig
@@ -159,7 +160,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
             />
           </ConfigGroup>
 
-          <ConfigGroup title="Commercial model">
+          <ConfigGroup title="Primary model">
             <ToggleRow
               label={selectedModel ? `${selectedModel.name} ${selectedModel.version}` : 'Foundry catalog model'}
               description={selectedModel ? `${MODEL_SOURCE_LABELS[selectedModel.source]} · ${selectedModel.publisher}` : 'Catalog metadata unavailable'}
@@ -172,6 +173,13 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
                 update={(change) => updateConfig((draft) => change(draft.commercialModel))}
               />
             </ToggleRow>
+            {config.commercialModel.enabled ? (
+              <ModelPortfolioConfigurator
+                config={config}
+                catalog={catalog}
+                update={updateConfig}
+              />
+            ) : null}
           </ConfigGroup>
 
           <ConfigGroup title="Foundry services">

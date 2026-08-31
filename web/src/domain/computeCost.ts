@@ -6,6 +6,7 @@ import {
   type CostLine,
   type CostResult,
   type CostTier,
+  type CommercialModelConfig,
   type HarnessConfig,
   type LineProvenance,
   type Rate,
@@ -189,7 +190,78 @@ export function computeCost(
     manualRateAsOf: modelPriceProfile?.asOf || rateCard.asOf,
   }
 
-  if (config.commercialModel.enabled) {
+  const portfolio = config.modelPortfolio
+  const hasPortfolioRouting = portfolio.deployments.length > 0 ||
+    portfolio.routes.length !== 1 ||
+    portfolio.routes[0]?.deploymentId !== 'primary' ||
+    portfolio.routes[0]?.mode !== 'traffic-share' ||
+    portfolio.routes[0]?.trafficPercent !== 100
+
+  if (hasPortfolioRouting) {
+    const deployments = new Map<string, { label: string; model: CommercialModelConfig }>([
+      ['primary', { label: 'Primary deployment', model: config.commercialModel }],
+      ...portfolio.deployments.map((deployment) => [
+        deployment.id,
+        { label: deployment.label, model: deployment.model },
+      ] as const),
+    ])
+    const shareTotal = portfolio.routes
+      .filter((route) => route.mode === 'traffic-share' && deployments.get(route.deploymentId)?.model.enabled)
+      .reduce((sum, route) => sum + nonNegative(route.trafficPercent), 0)
+    if (Math.abs(shareTotal - 100) > 0.001) {
+      lines.push({
+        id: 'run-model-routing-allocation',
+        blockId: 'modelPortfolio',
+        label: 'Model shared traffic must total 100%',
+        detail: shareTotal === 0
+          ? 'Add at least one shared-traffic route before using additive model calls.'
+          : `Entered shares total ${shareTotal.toFixed(1)}%; routed costs are normalized for preview only.`,
+        tier: 'run',
+        amount: null,
+        quantity: shareTotal,
+        quantityUnit: 'percent',
+        unitRate: null,
+        rateUnit: 'configuration required',
+        formula: 'sum of enabled shared-traffic routes = 100%',
+        assumption: 'Additive routes require a complete 100% base traffic allocation.',
+        scale: 1,
+        provenance: {
+          source: 'Scenario input: model traffic allocation',
+          sourceUrl: '',
+          asOf: rateCard.asOf,
+          maintenance: 'manual',
+        },
+      })
+    }
+    const routedByDeployment = new Map<string, RoutedModelVolume[]>()
+    for (const route of portfolio.routes) {
+      const deployment = deployments.get(route.deploymentId)
+      if (!deployment?.model.enabled || route.trafficPercent <= 0) continue
+      const scale = route.mode === 'traffic-share'
+        ? shareTotal > 0 ? nonNegative(route.trafficPercent) / shareTotal : 0
+        : nonNegative(route.trafficPercent) / 100
+      if (scale <= 0) continue
+      const routed = routedByDeployment.get(route.deploymentId) ?? []
+      routed.push({ routeId: route.id, routeLabel: route.label, scale })
+      routedByDeployment.set(route.deploymentId, routed)
+    }
+    for (const [deploymentId, routes] of routedByDeployment) {
+      const deployment = deployments.get(deploymentId)
+      if (!deployment) continue
+      addPortfolioDeploymentCosts(
+        lines,
+        rateCard,
+        modelCatalog,
+        deploymentId,
+        deployment.label,
+        deployment.model,
+        routes,
+        harnessVolumes,
+      )
+    }
+  }
+
+  if (config.commercialModel.enabled && !hasPortfolioRouting) {
     if (config.commercialModel.billingBasis === 'managed-compute') {
       addRateLine(lines, rateCard, {
         id: 'run-commercial-managed-compute',
@@ -1217,5 +1289,236 @@ export function computeCost(
           ? null
           : tokensPerMonth <= capacityTokensPerMonth,
     },
+  }
+}
+
+interface HarnessVolume {
+  harness: HarnessConfig
+  inputTokens: number
+  outputTokens: number
+}
+
+interface RoutedModelVolume {
+  routeId: string
+  routeLabel: string
+  scale: number
+}
+
+function portfolioModelContext(
+  model: CommercialModelConfig,
+  modelCatalog: readonly FoundryModelCatalogEntry[] | undefined,
+  rateCard: RateCard,
+) {
+  const catalogModel = getFoundryModel(model.modelId, modelCatalog)
+  const modelLabel = catalogModel ? `${catalogModel.name} ${catalogModel.version}` : model.modelId
+  const source = catalogModel ? MODEL_SOURCE_LABELS[catalogModel.source] : 'Custom catalog model'
+  const detail = `${source}; ${model.deploymentOption}; ${model.deploymentSku.replaceAll('-', ' ')}`
+  const profile = model.priceProfiles.find(
+    (candidate) => candidate.modelId === model.modelId && candidate.deploymentSku === model.deploymentSku,
+  )
+  return {
+    modelLabel,
+    detail,
+    provenance: {
+      manualRateSource: profile?.source.trim() ||
+        `Scenario price profile: ${model.modelId} / ${model.deploymentSku}`,
+      manualRateAsOf: profile?.asOf || rateCard.asOf,
+    },
+  }
+}
+
+function addPortfolioDeploymentCosts(
+  lines: CostLine[],
+  rateCard: RateCard,
+  modelCatalog: readonly FoundryModelCatalogEntry[] | undefined,
+  deploymentId: string,
+  deploymentLabel: string,
+  model: CommercialModelConfig,
+  routes: RoutedModelVolume[],
+  harnessVolumes: HarnessVolume[],
+) {
+  if (!model.enabled || routes.length === 0) return
+  const context = portfolioModelContext(model, modelCatalog, rateCard)
+  const volumeScale = routes.reduce((sum, route) => sum + route.scale, 0)
+  const totalInputTokens = harnessVolumes.reduce((sum, volume) => sum + volume.inputTokens, 0) * volumeScale
+  const totalOutputTokens = harnessVolumes.reduce((sum, volume) => sum + volume.outputTokens, 0) * volumeScale
+  const idPrefix = `run-model-${deploymentId}`
+  const routeDetail = routes.map((route) => route.routeLabel).join(', ')
+
+  if (model.billingBasis === 'managed-compute') {
+    addRateLine(lines, rateCard, {
+      id: `${idPrefix}-managed-compute`,
+      blockId: 'modelPortfolio',
+      label: `${deploymentLabel} - ${context.modelLabel} managed compute`,
+      detail: `${context.detail}; ${model.managedCompute.instances} instance(s); used by ${routeDetail}`,
+      tier: 'run',
+      rateKey: `${model.inputRateKey}.managedComputeHour`,
+      quantity: nonNegative(model.managedCompute.instances) * nonNegative(model.managedCompute.hoursPerMonth),
+      quantityUnit: 'instance-hours',
+      formula: 'unique deployment instances x occupied hours per month',
+      assumption: 'A shared managed endpoint is billed once even when several routes reference it.',
+      manualRate: model.managedCompute.instanceHourlyRateCad,
+      manualRateUnit: 'CAD/instance-hour',
+      manualRateSourceUrl: 'https://learn.microsoft.com/azure/machine-learning/how-to-deploy-models-managed',
+      ...context.provenance,
+    })
+    return
+  }
+
+  if (model.billingBasis === 'usage') {
+    addRateLine(lines, rateCard, {
+      id: `${idPrefix}-usage`,
+      blockId: 'modelPortfolio',
+      label: `${deploymentLabel} - ${context.modelLabel} usage`,
+      detail: `${context.detail}; used by ${routeDetail}`,
+      tier: 'run',
+      rateKey: `${model.inputRateKey}.usage`,
+      quantity: model.usage.monthlyQuantity,
+      quantityUnit: model.usage.quantityUnit,
+      formula: 'deployment-specific monthly usage x approved unit rate',
+      assumption: 'Non-token usage is entered once for the shared deployment.',
+      manualRate: model.usage.unitRateCad,
+      manualRateUnit: `CAD/${model.usage.quantityUnit}`,
+      ...context.provenance,
+    })
+    return
+  }
+
+  if (model.purchaseMode === 'ptu') {
+    const ptuUnits = nonNegative(model.ptuUnits)
+    addRateLine(lines, rateCard, {
+      id: `${idPrefix}-ptu`,
+      blockId: 'modelPortfolio',
+      label: `${deploymentLabel} - ${context.modelLabel} PTU reservation`,
+      detail: `${context.detail}; ${ptuUnits} PTUs; used by ${routeDetail}`,
+      tier: 'run',
+      rateKey: model.ptuHourlyRateKey,
+      quantity: ptuUnits * HOURS_PER_MONTH,
+      quantityUnit: 'PTU-hours',
+      formula: `${ptuUnits} PTUs x ${HOURS_PER_MONTH} hours`,
+      assumption: 'A shared PTU deployment is reserved once for all routes that reference it.',
+      manualRate: model.customPtuHourlyRateCad,
+      manualRateUnit: 'CAD/PTU-hour',
+      ...context.provenance,
+    })
+    const capacityTokens = model.ptuCapacityTokensPerUnitMonth === null
+      ? null
+      : ptuUnits * nonNegative(model.ptuCapacityTokensPerUnitMonth)
+    const totalTokens = totalInputTokens + totalOutputTokens
+    const overflowRatio = capacityTokens === null || totalTokens === 0
+      ? null
+      : nonNegative(totalTokens - capacityTokens) / totalTokens
+    if (overflowRatio === null) {
+      lines.push({
+        id: `${idPrefix}-overflow-unpriced`,
+        blockId: 'modelPortfolio',
+        label: `${deploymentLabel} PAYG overflow - capacity required`,
+        detail: 'Enter model-specific monthly token capacity per PTU to price spillover.',
+        tier: 'run',
+        amount: null,
+        quantity: totalTokens,
+        quantityUnit: 'tokens',
+        unitRate: null,
+        rateUnit: 'capacity unavailable',
+        formula: 'max(routed tokens - deployment PTU capacity, 0)',
+        assumption: 'PTU capacity varies by model and workload; no default is assumed.',
+        scale: 1,
+        provenance: {
+          source: 'Scenario input required: model-specific PTU capacity',
+          sourceUrl: 'https://learn.microsoft.com/azure/ai-services/openai/concepts/provisioned-throughput',
+          asOf: rateCard.asOf,
+          maintenance: 'manual',
+        },
+      })
+    } else if (overflowRatio > 0) {
+      addRateLine(lines, rateCard, {
+        id: `${idPrefix}-overflow-input`,
+        blockId: 'modelPortfolio',
+        label: `${deploymentLabel} PAYG overflow - input`,
+        detail: 'Routed input above shared PTU capacity',
+        tier: 'run',
+        rateKey: model.inputRateKey,
+        quantity: totalInputTokens * overflowRatio / TOKENS_PER_MILLION,
+        quantityUnit: 'million tokens',
+        formula: 'routed input tokens x overflow share / 1,000,000',
+        assumption: 'Overflow is allocated across input and output in their routed ratio.',
+        manualRate: model.customInputRateCadPerMillion,
+        manualRateUnit: 'CAD/million tokens',
+        ...context.provenance,
+      })
+      addRateLine(lines, rateCard, {
+        id: `${idPrefix}-overflow-output`,
+        blockId: 'modelPortfolio',
+        label: `${deploymentLabel} PAYG overflow - output`,
+        detail: 'Routed output above shared PTU capacity',
+        tier: 'run',
+        rateKey: model.outputRateKey,
+        quantity: totalOutputTokens * overflowRatio / TOKENS_PER_MILLION,
+        quantityUnit: 'million tokens',
+        formula: 'routed output tokens x overflow share / 1,000,000',
+        assumption: 'Overflow is allocated across input and output in their routed ratio.',
+        manualRate: model.customOutputRateCadPerMillion,
+        manualRateUnit: 'CAD/million tokens',
+        ...context.provenance,
+      })
+    }
+    return
+  }
+
+  const isBatch = model.purchaseMode === 'batch'
+  const cachedInputShare = isBatch ? 0 : clamp(model.cachedInputPercent, 0, 100) / 100
+  for (const route of routes) {
+    for (const volume of harnessVolumes) {
+      const uncachedInputTokens = volume.inputTokens * route.scale * (1 - cachedInputShare)
+      if (uncachedInputTokens > 0) {
+        addRateLine(lines, rateCard, {
+          id: `${idPrefix}-${route.routeId}-${volume.harness.id}-input`,
+          blockId: 'modelPortfolio',
+          label: `${route.routeLabel} - ${context.modelLabel} input`,
+          detail: `${context.detail}; ${volume.harness.label}; ${(route.scale * 100).toFixed(1)}% routed volume`,
+          tier: 'run',
+          rateKey: isBatch ? model.batchInputRateKey : model.inputRateKey,
+          quantity: uncachedInputTokens / TOKENS_PER_MILLION,
+          quantityUnit: 'million tokens',
+          formula: 'route share x harness input tokens / 1,000,000',
+          assumption: 'Traffic-share routes are normalized; additive routes increase total model calls.',
+          manualRate: isBatch ? model.customBatchInputRateCadPerMillion : model.customInputRateCadPerMillion,
+          manualRateUnit: 'CAD/million tokens',
+          ...context.provenance,
+        })
+      }
+      if (cachedInputShare > 0) {
+        addRateLine(lines, rateCard, {
+          id: `${idPrefix}-${route.routeId}-${volume.harness.id}-cached-input`,
+          blockId: 'modelPortfolio',
+          label: `${route.routeLabel} - ${context.modelLabel} cached input`,
+          detail: `${context.detail}; ${volume.harness.label}; ${(route.scale * 100).toFixed(1)}% routed volume`,
+          tier: 'run',
+          rateKey: model.cachedInputRateKey,
+          quantity: volume.inputTokens * route.scale * cachedInputShare / TOKENS_PER_MILLION,
+          quantityUnit: 'million cached tokens',
+          formula: 'route share x harness input tokens x cache-hit share / 1,000,000',
+          assumption: 'Only supported identical prompt prefixes qualify for cached-input rates.',
+          manualRate: model.customCachedInputRateCadPerMillion,
+          manualRateUnit: 'CAD/million cached tokens',
+          ...context.provenance,
+        })
+      }
+      addRateLine(lines, rateCard, {
+        id: `${idPrefix}-${route.routeId}-${volume.harness.id}-output`,
+        blockId: 'modelPortfolio',
+        label: `${route.routeLabel} - ${context.modelLabel} output`,
+        detail: `${context.detail}; ${volume.harness.label}; ${(route.scale * 100).toFixed(1)}% routed volume`,
+        tier: 'run',
+        rateKey: isBatch ? model.batchOutputRateKey : model.outputRateKey,
+        quantity: volume.outputTokens * route.scale / TOKENS_PER_MILLION,
+        quantityUnit: 'million tokens',
+        formula: 'route share x harness output tokens / 1,000,000',
+        assumption: 'Traffic-share routes are normalized; additive routes increase total model calls.',
+        manualRate: isBatch ? model.customBatchOutputRateCadPerMillion : model.customOutputRateCadPerMillion,
+        manualRateUnit: 'CAD/million tokens',
+        ...context.provenance,
+      })
+    }
   }
 }

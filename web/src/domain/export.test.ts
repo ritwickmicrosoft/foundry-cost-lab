@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { computeCost } from './computeCost'
 import { buildScenarioExport, parseScenarioExport } from './export'
 import { createPreset } from './presets'
+import { buildGuidedConfig, DEFAULT_GUIDED_ANSWERS } from './guidedEstimate'
+import { FOUNDRY_MODEL_CATALOG } from './foundryCatalog'
 import { fallbackRateCard } from './rates'
 
 describe('scenario export', () => {
@@ -55,5 +57,48 @@ describe('scenario export', () => {
     const imported = parseScenarioExport(exported)
     expect(imported.config.region).toBe('eastus2')
     expect(imported.rateCard.region).toBe('eastus2')
+  })
+
+  it('round-trips portfolio deployments and routing without exported totals', () => {
+    const config = buildGuidedConfig({
+      ...DEFAULT_GUIDED_ANSWERS,
+      modelStrategy: 'quality-focused',
+    }, FOUNDRY_MODEL_CATALOG, '2026-08-01')
+    const exported = buildScenarioExport(
+      config,
+      computeCost(config, fallbackRateCard, FOUNDRY_MODEL_CATALOG),
+      fallbackRateCard,
+      '2026-08-27T00:00:00Z',
+    )
+
+    const imported = parseScenarioExport(exported)
+    expect(imported.config.modelPortfolio).toEqual(config.modelPortfolio)
+    expect(imported.config.modelPortfolio.routes[1]).toMatchObject({
+      role: 'reasoning',
+      mode: 'additive',
+      trafficPercent: 15,
+    })
+    expect(computeCost(imported.config, fallbackRateCard, FOUNDRY_MODEL_CATALOG).knownGrandTotal)
+      .toBeCloseTo(computeCost(config, fallbackRateCard, FOUNDRY_MODEL_CATALOG).knownGrandTotal)
+  })
+
+  it('rejects oversized portfolios instead of silently dropping routes', () => {
+    const config = createPreset('poc')
+    config.modelPortfolio.routes = Array.from({ length: 13 }, (_, index) => ({
+      id: `route-${index}`,
+      label: `Route ${index}`,
+      role: index === 0 ? 'primary' as const : 'fast' as const,
+      deploymentId: 'primary',
+      mode: index === 0 ? 'traffic-share' as const : 'additive' as const,
+      trafficPercent: index === 0 ? 100 : 1,
+    }))
+    const exported = buildScenarioExport(
+      config,
+      computeCost(config, fallbackRateCard),
+      fallbackRateCard,
+      '2026-08-27T00:00:00Z',
+    )
+
+    expect(() => parseScenarioExport(exported)).toThrow('at most 12 model routes')
   })
 })

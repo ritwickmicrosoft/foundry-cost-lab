@@ -92,7 +92,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
   letter-spacing: 0;
 }
@@ -110,6 +111,7 @@ button:disabled {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+textarea:focus-visible,
 a:focus-visible,
 [role="tab"]:focus-visible {
   outline: 2px solid var(--cp-accent);

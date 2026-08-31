@@ -40,6 +40,7 @@ function migrateCostConfig(config: CostConfig, sourceVersion: number): CostConfi
   const posture: Posture = config.posture === 'production' ? 'production' : 'poc'
   const defaults = createPreset(posture)
   const commercialModel = config.commercialModel ?? defaults.commercialModel
+  const modelPortfolio = config.modelPortfolio ?? defaults.modelPortfolio
   const guardrail = config.guardrail ?? defaults.guardrail
   const platform = config.platform ?? defaults.platform
   const serviceSelections = defaults.foundryServices.selections.map((defaultSelection) => ({
@@ -62,6 +63,33 @@ function migrateCostConfig(config: CostConfig, sourceVersion: number): CostConfi
         ...defaults.commercialModel.usage,
         ...commercialModel.usage,
       },
+    },
+    modelPortfolio: {
+      ...defaults.modelPortfolio,
+      ...modelPortfolio,
+      deployments: Array.isArray(modelPortfolio.deployments)
+        ? modelPortfolio.deployments.map((deployment) => ({
+            ...deployment,
+            model: {
+              ...defaults.commercialModel,
+              ...deployment.model,
+              managedCompute: {
+                ...defaults.commercialModel.managedCompute,
+                ...deployment.model?.managedCompute,
+              },
+              usage: {
+                ...defaults.commercialModel.usage,
+                ...deployment.model?.usage,
+              },
+              priceProfiles: Array.isArray(deployment.model?.priceProfiles)
+                ? deployment.model.priceProfiles
+                : [],
+            },
+          }))
+        : [],
+      routes: Array.isArray(modelPortfolio.routes) && modelPortfolio.routes.length > 0
+        ? modelPortfolio.routes
+        : defaults.modelPortfolio.routes,
     },
     hostedAgent: config.hostedAgent ?? defaults.hostedAgent,
     foundryServices: { selections: serviceSelections },
@@ -105,7 +133,11 @@ export function migrateLabState(persistedState: unknown, version: number): Persi
     const scenarioIds = new Set(scenarios.map((scenario) => scenario.id))
     return {
       ...state,
-      scenarios,
+      config: migrateCostConfig(state.config, version),
+      scenarios: scenarios.map((scenario) => ({
+        ...scenario,
+        config: migrateCostConfig(scenario.config, version),
+      })),
       comparisonIds: [...new Set(Array.isArray(state.comparisonIds) ? state.comparisonIds : [])]
         .filter((id) => scenarioIds.has(id))
         .slice(0, MAX_COMPARISON_SCENARIOS),
@@ -119,11 +151,11 @@ export function migrateLabState(persistedState: unknown, version: number): Persi
   if (version === 5) {
     return {
       ...state,
-      config: migrateContentSafetyKey(state.config),
+      config: migrateCostConfig(migrateContentSafetyKey(state.config), version),
       scenarios: Array.isArray(state.scenarios)
         ? state.scenarios.map((scenario) => ({
             ...scenario,
-            config: migrateContentSafetyKey(scenario.config),
+        config: migrateCostConfig(migrateContentSafetyKey(scenario.config), version),
           }))
         : [],
       comparisonIds: Array.isArray(state.comparisonIds) ? state.comparisonIds : [],
@@ -140,11 +172,11 @@ export function migrateLabState(persistedState: unknown, version: number): Persi
     }
     return {
       ...state,
-      config: migrateContentSafetyKey(migrateCurrent(state.config)),
+      config: migrateCostConfig(migrateContentSafetyKey(migrateCurrent(state.config)), version),
       scenarios: Array.isArray(state.scenarios)
         ? state.scenarios.map((scenario) => ({
             ...scenario,
-            config: migrateContentSafetyKey(migrateCurrent(scenario.config)),
+        config: migrateCostConfig(migrateContentSafetyKey(migrateCurrent(scenario.config)), version),
           }))
         : [],
       comparisonIds: Array.isArray(state.comparisonIds) ? state.comparisonIds : [],
@@ -255,7 +287,7 @@ export const useLabStore = create<LabState>()(
     }),
     {
       name: 'foundry-cost-lab',
-      version: 7,
+      version: 8,
       storage: createJSONStorage(() => labStorage.storage),
       migrate: migrateLabState,
       partialize: (state) => ({

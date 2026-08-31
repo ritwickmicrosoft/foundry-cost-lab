@@ -195,7 +195,7 @@ The Azure extension context is signed into a different tenant, so deployment and
 
 ## Section 7: Validation Proof
 
-Validation refreshed: `2026-08-25 18:16:00 -04:00`.
+Validation refreshed: `2026-08-31 10:29:00 -04:00`.
 
 | Check | Command or evidence | Result |
 |---|---|---|
@@ -204,8 +204,8 @@ Validation refreshed: `2026-08-25 18:16:00 -04:00`.
 | Environment | `azd env get-values` (names/presence only) | Passed: approved subscription/location and operations settings configured |
 | Authentication | `azd auth login --check-status` | Passed as `ritwickdutta@microsoft.com` |
 | Subscription/location | User confirmation + Bicep compilation | Passed: `Ritwick - Demo`, East US 2 |
-| Provision preview | `azd provision --preview --no-prompt` plus direct subscription what-if | Passed: creates one Communication Service, one Email Service, one `AzureManagedDomain`, scoped email RBAC, and Function settings; no deletes or replacements; existing resources show only known AVM normalization/redeploy entries |
-| Web verification | `npm --prefix web test`, `lint`, `build` | Passed: 68 tests, lint, production bundle |
+| Provision preview | `azd provision --preview --no-prompt` | Passed: no creates, deletes, or replacements; existing resources show only known AVM/API normalization entries |
+| Web verification | `npm --prefix web test`, `lint`, `build` | Passed: 83 tests, lint, production bundle |
 | API verification | `npm --prefix api test`, `lint`, `build` | Passed: 49 tests, including comparison contracts, managed-identity model request, truncation handling, usage limiting, endpoint authorization, strict typecheck, and production build |
 | Browser verification | `npm --prefix web run test:e2e` | Passed: automatic invitation completion plus requester/admin approval, PDF/JSON downloads, mobile install prompt, model/SKU isolation, technical-domain coverage, and zero Axe violations |
 | PWA verification | `npm --prefix web run test:pwa` | Passed: manifest/icons, service-worker registration, desktop/Android/iPhone-sized layouts, static asset caching, and network-only navigation/API/auth |

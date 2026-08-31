@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { computeCost } from './computeCost'
 import { FOUNDRY_MODEL_CATALOG } from './foundryCatalog'
+import { buildGuidedConfig, DEFAULT_GUIDED_ANSWERS } from './guidedEstimate'
 import { applyModelPriceSelection, updateActiveModelPriceProfile } from './modelPriceProfiles'
 import { createPreset } from './presets'
 import { buildPricingReadiness } from './pricingReadiness'
@@ -73,5 +74,24 @@ describe('pricing readiness', () => {
     expect(readiness.blocks.find((block) => block.id === 'rag')?.status).toBe('exact')
     expect(readiness.blocks.find((block) => block.id === 'observability')?.status).toBe('exact')
     expect(readiness.blocks.find((block) => block.id === 'networking')?.status).toBe('inactive')
+  })
+
+  it('blocks readiness when any routed portfolio deployment is unpriced', () => {
+    const config = buildGuidedConfig({
+      ...DEFAULT_GUIDED_ANSWERS,
+      modelStrategy: 'quality-focused',
+    }, FOUNDRY_MODEL_CATALOG, '2026-08-01')
+    const result = computeCost(config, fallbackRateCard, FOUNDRY_MODEL_CATALOG)
+    const readiness = buildPricingReadiness(config, fallbackRateCard, result, FOUNDRY_MODEL_CATALOG)
+
+    expect(readiness.modelStatus).toBe('unpriced')
+    expect(readiness.modelLabel).toBe('2 routed model roles')
+    expect(readiness.dimensions.some(
+      (dimension) => dimension.label === 'Reasoning deployment · Input' && dimension.status === 'unpriced',
+    )).toBe(true)
+    expect(readiness.decisionBlockers).toEqual(expect.arrayContaining([
+      'Reasoning deployment · Input rate',
+      'Reasoning deployment · Output rate',
+    ]))
   })
 })

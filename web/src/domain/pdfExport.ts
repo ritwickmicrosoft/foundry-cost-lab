@@ -5,6 +5,7 @@ import {
   type CostConfig,
   type CostResult,
   type CostTier,
+  type CommercialModelConfig,
   type RateCard,
 } from './types'
 
@@ -75,6 +76,25 @@ export async function createCostEstimatePdf({
   const pageHeight = document.internal.pageSize.getHeight()
   const margin = 40
   const contentWidth = pageWidth - margin * 2
+  const modelDeployments = new Map<string, { label: string; model: CommercialModelConfig }>([
+    ['primary', { label: 'Primary deployment', model: config.commercialModel }],
+    ...config.modelPortfolio.deployments.map((deployment) => [
+      deployment.id,
+      { label: deployment.label, model: deployment.model },
+    ] as const),
+  ])
+  const portfolioRows = config.modelPortfolio.routes.map((route) => {
+    const deployment = modelDeployments.get(route.deploymentId)
+    return [
+      route.label,
+      deployment?.model.modelId ?? 'Unresolved deployment',
+      deployment?.model.deploymentSku ?? 'Unknown',
+      route.mode === 'traffic-share'
+        ? `${number(route.trafficPercent)}% shared traffic`
+        : `${number(route.trafficPercent)}% additional calls`,
+      deployment?.model.enabled === false ? 'Disabled' : 'Enabled',
+    ]
+  })
   const reportName = printable(
     scenarioName?.trim() || `${config.posture === 'production' ? 'Production' : 'Lean POC'} scenario`,
   )
@@ -164,7 +184,7 @@ export async function createCostEstimatePdf({
     cursor + 35,
   )
   document.text(
-    `${config.commercialModel.modelId} | ${config.commercialModel.deploymentSku}`,
+    `${config.modelPortfolio.routes.length} model route(s) | ${modelDeployments.size} deployment(s)`,
     margin + 280,
     cursor + 50,
     { maxWidth: 215 },
@@ -205,6 +225,24 @@ export async function createCostEstimatePdf({
       1: { cellWidth: 166 },
       2: { cellWidth: 100 },
       3: { cellWidth: 166 },
+    },
+  })
+
+  cursor = section('Model portfolio', (pdf.lastAutoTable?.finalY ?? cursor) + 24)
+  autoTable(document, {
+    startY: cursor,
+    margin: { left: margin, right: margin },
+    theme: 'grid',
+    styles: { font: 'helvetica', fontSize: 8, textColor: COLORS.text, cellPadding: 5 },
+    headStyles: { fillColor: COLORS.surface, textColor: COLORS.text, fontStyle: 'bold' },
+    head: [['Route', 'Model', 'Deployment SKU', 'Routing', 'State']],
+    body: portfolioRows.map((row) => row.map(printable)),
+    columnStyles: {
+      0: { cellWidth: 84 },
+      1: { cellWidth: 154 },
+      2: { cellWidth: 96 },
+      3: { cellWidth: 126 },
+      4: { cellWidth: 72 },
     },
   })
 

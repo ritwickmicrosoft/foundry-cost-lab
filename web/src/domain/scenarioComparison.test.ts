@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { createPreset } from './presets'
 import { fallbackRateCardFor } from './rates'
 import { buildScenarioComparison, type ComparisonSource } from './scenarioComparison'
+import { buildGuidedConfig, DEFAULT_GUIDED_ANSWERS } from './guidedEstimate'
+import { FOUNDRY_MODEL_CATALOG } from './foundryCatalog'
 import type { CostResult } from './types'
 
 const result = (monthly: number, lineAmount: number | null, complete = lineAmount !== null): CostResult => ({
@@ -56,5 +58,21 @@ describe('scenario comparison', () => {
     expect(analysis.drivers[0].values[1]).toEqual({ state: 'unpriced', amount: null })
     expect(analysis.drivers[0].deltasFromBaseline[1]).toBeNull()
     expect(analysis.summaries[1]).toMatchObject({ complete: false, unpricedLineCount: 1 })
+  })
+
+  it('compares complete model portfolio routing assumptions', () => {
+    const single = source('a', 100, 100)
+    const quality = source('b', 120, 120)
+    quality.config = buildGuidedConfig({
+      ...DEFAULT_GUIDED_ANSWERS,
+      modelStrategy: 'quality-focused',
+    }, FOUNDRY_MODEL_CATALOG, '2026-08-01')
+
+    const analysis = buildScenarioComparison([single, quality])
+    const portfolio = analysis.assumptions.find((assumption) => assumption.id === 'model-portfolio')
+
+    expect(portfolio?.differs).toBe(true)
+    expect(portfolio?.values[1]).toContain('Reasoning assist')
+    expect(portfolio?.values[1]).toContain('15% additional')
   })
 })

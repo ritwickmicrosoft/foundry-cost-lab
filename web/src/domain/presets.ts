@@ -52,6 +52,20 @@ const commonConfig: Omit<CostConfig, 'posture'> = {
     cachedInputPercent: 0,
     priceProfiles: [],
   },
+  modelPortfolio: {
+    strategy: 'single',
+    deployments: [],
+    routes: [
+      {
+        id: 'primary-route',
+        label: 'Primary model',
+        role: 'primary',
+        deploymentId: 'primary',
+        mode: 'traffic-share',
+        trafficPercent: 100,
+      },
+    ],
+  },
   hostedAgent: {
     enabled: false,
     sandboxSize: '1vcpu-2gb',

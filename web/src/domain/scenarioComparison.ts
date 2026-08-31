@@ -88,15 +88,36 @@ const lineValue = (line: CostLine | undefined): ComparisonValue => {
   return { state: 'priced', amount: line.amount }
 }
 
+const portfolioSummary = (config: CostConfig) => {
+  const deployments = new Map([
+    ['primary', config.commercialModel.modelId],
+    ...config.modelPortfolio.deployments.map((deployment) => [deployment.id, deployment.model.modelId] as const),
+  ])
+  return config.modelPortfolio.routes.map((route) => {
+    const routing = route.mode === 'traffic-share'
+      ? `${route.trafficPercent}% shared`
+      : `${route.trafficPercent}% additional`
+    return `${route.label}: ${deployments.get(route.deploymentId) ?? 'Unresolved'} (${routing})`
+  }).join(' | ')
+}
+
+const portfolioDeploymentValues = (config: CostConfig, field: 'deploymentSku' | 'purchaseMode') => {
+  const values = [
+    config.commercialModel[field],
+    ...config.modelPortfolio.deployments.map((deployment) => deployment.model[field]),
+  ]
+  return [...new Set(values)].map((value) => String(value).toUpperCase()).join(', ')
+}
+
 const assumptionRows = (sources: readonly ComparisonSource[]): ComparisonAssumption[] => {
   const rows: Array<Omit<ComparisonAssumption, 'differs'>> = [
     { id: 'posture', label: 'Posture', values: sources.map((source) => source.config.posture === 'production' ? 'Production' : 'Lean POC') },
     { id: 'region', label: 'Region', values: sources.map((source) => REGION_LABELS[source.config.region]) },
     { id: 'environments', label: 'Environments', values: sources.map((source) => String(source.config.environments)) },
     { id: 'monthly-users', label: 'Monthly users', values: sources.map((source) => source.config.workload.monthlyUsers.toLocaleString('en-CA')) },
-    { id: 'model', label: 'Model', values: sources.map((source) => source.config.commercialModel.modelId) },
-    { id: 'deployment-sku', label: 'Deployment SKU', values: sources.map((source) => source.config.commercialModel.deploymentSku) },
-    { id: 'purchase-mode', label: 'Purchase mode', values: sources.map((source) => source.config.commercialModel.purchaseMode.toUpperCase()) },
+    { id: 'model-portfolio', label: 'Model portfolio', values: sources.map((source) => portfolioSummary(source.config)) },
+    { id: 'deployment-sku', label: 'Deployment SKUs', values: sources.map((source) => portfolioDeploymentValues(source.config, 'deploymentSku')) },
+    { id: 'purchase-mode', label: 'Purchase modes', values: sources.map((source) => portfolioDeploymentValues(source.config, 'purchaseMode')) },
     { id: 'standard-agent', label: 'Standard Agent Setup', values: sources.map((source) => source.config.platform.standardAgentSetup.enabled ? 'Included' : 'Excluded') },
     { id: 'private-networking', label: 'Private networking', values: sources.map((source) => source.config.platform.privateEndpoints.enabled || source.config.networking.privateLinkData.enabled ? 'Included' : 'Excluded') },
     { id: 'disaster-recovery', label: 'Disaster recovery', values: sources.map((source) => source.config.disasterRecovery.enabled ? 'Included' : 'Excluded') },

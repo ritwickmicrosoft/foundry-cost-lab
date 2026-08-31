@@ -22,6 +22,37 @@ function versionOneConfig(): CostConfig {
 }
 
 describe('lab-state migrations', () => {
+  it('migrates version-7 single-model state to a 100% primary route', () => {
+    const config = createPreset('poc')
+    delete (config as Partial<CostConfig>).modelPortfolio
+    const scenarioConfig = structuredClone(config)
+    const scenario = {
+      id: 'legacy-v7',
+      name: 'Legacy v7',
+      config: scenarioConfig,
+      rateCardAsOf: '2026-08-26',
+      createdAt: '2026-08-26T00:00:00Z',
+      updatedAt: '2026-08-26T00:00:00Z',
+    }
+
+    const migrated = migrateLabState({ config, scenarios: [scenario], comparisonIds: [] }, 7)
+
+    expect(migrated.config.modelPortfolio).toEqual({
+      strategy: 'single',
+      deployments: [],
+      routes: [{
+        id: 'primary-route',
+        label: 'Primary model',
+        role: 'primary',
+        deploymentId: 'primary',
+        mode: 'traffic-share',
+        trafficPercent: 100,
+      }],
+    })
+    expect(migrated.scenarios[0]?.config.modelPortfolio.routes[0]?.trafficPercent).toBe(100)
+    expect(migrated.config.commercialModel.modelId).toBe('direct-azure/gpt-4o/2024-11-20')
+  })
+
   it('caps comparison selections and removes stale scenario IDs', () => {
     const scenarios: SavedScenario[] = ['a', 'b', 'c', 'd'].map((id) => ({
       id,

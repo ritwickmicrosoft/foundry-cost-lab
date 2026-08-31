@@ -1,5 +1,5 @@
 import { ChevronDown, Cloud, Search, Server, SlidersHorizontal } from 'lucide-react'
-import { useDeferredValue, useState } from 'react'
+import { useDeferredValue, useId, useState } from 'react'
 import {
   MODEL_SOURCE_IDS,
   MODEL_SOURCE_LABELS,
@@ -72,6 +72,10 @@ const dedicatedRecommendationRank = (model: FoundryModelCatalogEntry) => {
 }
 
 export function ModelCatalogConfigurator({ config, catalog, update }: ModelCatalogConfiguratorProps) {
+  const componentId = useId()
+  const filterPanelId = `${componentId}-model-filter-panel`
+  const deploymentPanelId = `${componentId}-model-deployment-details`
+  const pricingPanelId = `${componentId}-model-pricing-details`
   const selectedModel = getFoundryModel(config.modelId, catalog.models) ?? catalog.models[0]!
   const [query, setQuery] = useState('')
   const [provider, setProvider] = useState<ProviderFilter>('all')
@@ -252,7 +256,7 @@ export function ModelCatalogConfigurator({ config, catalog, update }: ModelCatal
             type="button"
             className="button button--quiet model-filter-button"
             aria-expanded={showFilters}
-            aria-controls="model-filter-panel"
+            aria-controls={filterPanelId}
             onClick={() => setShowFilters((visible) => !visible)}
           >
             <SlidersHorizontal aria-hidden="true" />
@@ -261,7 +265,7 @@ export function ModelCatalogConfigurator({ config, catalog, update }: ModelCatal
       </div>
 
         {showFilters ? (
-          <div id="model-filter-panel" className="model-filter-panel" role="region" aria-label="Model filters">
+          <div id={filterPanelId} className="model-filter-panel" role="region" aria-label="Model filters">
             <label className="field">
               <span className="field__label">Provider</span>
               <select value={provider} onChange={(event) => {
@@ -343,14 +347,14 @@ export function ModelCatalogConfigurator({ config, catalog, update }: ModelCatal
             type="button"
             className="model-disclosure-button"
             aria-expanded={showDeploymentDetails}
-            aria-controls="model-deployment-details"
+            aria-controls={deploymentPanelId}
             onClick={() => setShowDeploymentDetails((visible) => !visible)}
           >
             <span><strong>Deployment details</strong><small>{MODEL_DEPLOYMENT_SKU_LABELS[config.deploymentSku]} · {billingLabels[config.billingBasis]}</small></span>
             <ChevronDown aria-hidden="true" />
           </button>
           {showDeploymentDetails ? (
-            <div id="model-deployment-details" className="model-disclosure-panel" role="region" aria-label="Deployment details">
+            <div id={deploymentPanelId} className="model-disclosure-panel" role="region" aria-label="Deployment details">
               <label className="field">
                 <span className="field__label">Deployment option</span>
                 <select value={config.deploymentOption} onChange={(event) => selectDeployment(event.target.value)}>
@@ -438,13 +442,13 @@ export function ModelCatalogConfigurator({ config, catalog, update }: ModelCatal
           type="button"
           className="model-disclosure-button"
           aria-expanded={showPricingDetails}
-          aria-controls="model-pricing-details"
+          aria-controls={pricingPanelId}
           onClick={() => setShowPricingDetails((visible) => !visible)}
         >
           <span><strong>Pricing details</strong><small>Fallback rates and source evidence</small></span>
           <ChevronDown aria-hidden="true" />
         </button>
-        {showPricingDetails ? <div id="model-pricing-details" className="model-disclosure-panel" role="region" aria-label="Pricing details">
+        {showPricingDetails ? <div id={pricingPanelId} className="model-disclosure-panel" role="region" aria-label="Pricing details">
 
       {config.billingBasis === 'tokens' ? (
         <div className="catalog-pricing-fields">
