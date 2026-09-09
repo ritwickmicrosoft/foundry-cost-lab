@@ -1,5 +1,6 @@
 import * as Tabs from '@radix-ui/react-tabs'
 import { Bot, Boxes, RefreshCw, ShieldCheck } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import {
   HOSTED_AGENT_SANDBOXES,
   REGION_IDS,
@@ -7,6 +8,7 @@ import {
   type AgenticReasoningEffort,
   type CosmosBillingMode,
   type CostConfig,
+  type CostTier,
   type HostedAgentSandboxSize,
   type Posture,
   type ToolBillingScope,
@@ -17,25 +19,45 @@ import { FoundryServicesConfigurator } from './FoundryServicesConfigurator'
 import { ModelCatalogConfigurator } from './ModelCatalogConfigurator'
 import { ModelPortfolioConfigurator } from './ModelPortfolioConfigurator'
 
+export interface ConfigFocusRequest {
+  tier: CostTier
+  blockId: string
+}
+
 interface ConfigPanelProps {
   config: CostConfig
   updateConfig: (update: (config: CostConfig) => void) => void
   applyPreset: (posture: Posture) => void
   catalog: ActiveFoundryCatalog
+  focusRequest?: ConfigFocusRequest
 }
 
-export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: ConfigPanelProps) {
+export function ConfigPanel({ config, updateConfig, applyPreset, catalog, focusRequest }: ConfigPanelProps) {
+  const [activeTier, setActiveTier] = useState('run')
+  const panel = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (focusRequest) setActiveTier(focusRequest.tier)
+  }, [focusRequest])
+  useEffect(() => {
+    if (!focusRequest || activeTier !== focusRequest.tier) return
+    const frame = requestAnimationFrame(() => {
+      const target = panel.current?.querySelector<HTMLElement>(`[data-cost-block~="${focusRequest.blockId}"]`)
+      target?.scrollIntoView({ block: 'start' })
+      target?.focus({ preventScroll: true })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [activeTier, focusRequest])
   const selectedModel = getFoundryModel(config.commercialModel.modelId, catalog.models)
   const contentSafetyRegion = config.region === 'canadacentral' ? 'canadaeast' : config.region
 
   return (
-    <aside className="config-panel" aria-label="Cost configuration">
+    <aside className="config-panel" aria-label="Cost configuration" ref={panel}>
       <div className="config-panel__top">
         <SegmentedControl
-          label="Delivery posture"
+          label="Delivery stage"
           value={config.posture}
           options={[
-            { value: 'poc', label: 'Lean POC' },
+            { value: 'poc', label: 'POC' },
             { value: 'production', label: 'Production' },
           ]}
           onChange={applyPreset}
@@ -98,7 +120,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
         </div>
       </div>
 
-      <Tabs.Root className="config-tabs" defaultValue="run">
+      <Tabs.Root className="config-tabs" value={activeTier} onValueChange={setActiveTier}>
         <Tabs.List className="config-tabs__list" aria-label="Cost tiers">
           <Tabs.Trigger value="run"><Bot aria-hidden="true" />Run</Tabs.Trigger>
           <Tabs.Trigger value="guardrail"><ShieldCheck aria-hidden="true" />Guardrail</Tabs.Trigger>
@@ -107,7 +129,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
         </Tabs.List>
 
         <Tabs.Content value="run" className="config-tabs__content">
-          <ConfigGroup title="Workload volume">
+          <ConfigGroup title="Workload volume" blockIds={['workload']}>
             <div className="field-grid field-grid--two">
               <NumberField
                 label="Monthly users"
@@ -160,7 +182,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
             />
           </ConfigGroup>
 
-          <ConfigGroup title="Primary model">
+          <ConfigGroup title="Primary model" blockIds={['commercialModel', 'modelPortfolio']}>
             <ToggleRow
               label={selectedModel ? `${selectedModel.name} ${selectedModel.version}` : 'Foundry catalog model'}
               description={selectedModel ? `${MODEL_SOURCE_LABELS[selectedModel.source]} · ${selectedModel.publisher}` : 'Catalog metadata unavailable'}
@@ -182,14 +204,14 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
             ) : null}
           </ConfigGroup>
 
-          <ConfigGroup title="Foundry services">
+          <ConfigGroup title="Foundry services" blockIds={['foundryServices']}>
             <FoundryServicesConfigurator
               config={config.foundryServices}
               update={(change) => updateConfig((draft) => change(draft.foundryServices))}
             />
           </ConfigGroup>
 
-          <ConfigGroup title="Hosted agent runtime">
+          <ConfigGroup title="Hosted agent runtime" blockIds={['hostedAgent']}>
             <ToggleRow
               label="Foundry hosted agent"
               description="CPU and memory are billed across active session sandboxes"
@@ -230,7 +252,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
             </ToggleRow>
           </ConfigGroup>
 
-          <ConfigGroup title="Agent tools">
+          <ConfigGroup title="Agent tools" blockIds={['agentTools']}>
             <ToggleRow
               label="Code Interpreter"
               description="Isolated execution sessions billed by global or regional scope"
@@ -381,7 +403,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
             ))}
           </ConfigGroup>
 
-          <ConfigGroup title="Open-source inference">
+          <ConfigGroup title="Open-source inference" blockIds={['ossModel']}>
             <ToggleRow
               label="Dedicated OSS model"
               description="GPU-hour pricing; token volume does not alter this subtotal"
@@ -414,7 +436,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
         </Tabs.Content>
 
         <Tabs.Content value="guardrail" className="config-tabs__content">
-          <ConfigGroup title="Safety and threat protection">
+          <ConfigGroup title="Safety and threat protection" blockIds={['contentSafety', 'defenderForAi']}>
             <ToggleRow
               label="Standalone Content Safety API"
               description={`${REGION_LABELS[contentSafetyRegion]} Standard text records; Foundry model filtering is already integrated`}
@@ -435,19 +457,20 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
               onCheckedChange={(checked) => updateConfig((draft) => { draft.guardrail.defenderForAi.enabled = checked })}
             />
           </ConfigGroup>
-          <ConfigGroup title="Security operations">
+          <ConfigGroup title="Security operations" blockIds={['sentinel', 'entra', 'purview']}>
             <ToggleRow
               label="Microsoft Sentinel"
-              description="Pay-as-you-go analytics ingestion"
+              description="Optional workload allocation; simplified PAYG includes ingestion and analysis"
               checked={config.guardrail.sentinel.enabled}
               onCheckedChange={(checked) => updateConfig((draft) => { draft.guardrail.sentinel.enabled = checked })}
             >
               <NumberField
-                label="Monthly ingestion"
+                label="Billable monthly ingestion"
                 value={config.guardrail.sentinel.ingestedGbPerMonth}
-                step={10}
+                step={0.1}
                 suffix="GB"
-                onChange={(value) => updateConfig((draft) => { draft.guardrail.sentinel.ingestedGbPerMonth = value ?? 0 })}
+                hint="After eligible free data and benefits. Blank = usage required; 0 = no billable ingestion. Exclude the same ingestion from observability."
+                onChange={(value) => updateConfig((draft) => { draft.guardrail.sentinel.ingestedGbPerMonth = value })}
               />
             </ToggleRow>
             <ToggleRow
@@ -473,7 +496,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
         </Tabs.Content>
 
         <Tabs.Content value="platform" className="config-tabs__content">
-          <ConfigGroup title="Foundry Standard Agent Setup">
+          <ConfigGroup title="Foundry Standard Agent Setup" blockIds={['standardAgentCosmos', 'standardAgentStorage', 'knowledgeSearch']}>
             <ToggleRow
               label="BYO Cosmos DB thread storage"
               description="Messages, conversation history, and agent metadata"
@@ -590,7 +613,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
               </div>
             </ToggleRow>
           </ConfigGroup>
-          <ConfigGroup title="RAG and retrieval">
+          <ConfigGroup title="RAG and retrieval" blockIds={['rag']}>
             <ToggleRow
               label="Semantic ranker"
               description="Premium semantic queries, separate from Search Units"
@@ -717,7 +740,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
               </div>
             </ToggleRow>
           </ConfigGroup>
-          <ConfigGroup title="Fixed environment infrastructure">
+          <ConfigGroup title="Fixed environment infrastructure" blockIds={['apiManagement', 'privateEndpoints', 'appCompute']}>
             <ToggleRow
               label="API Management Basic v2"
               description="Production units scale by environment and secondary-region ratio"
@@ -758,7 +781,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
               />
             </ToggleRow>
           </ConfigGroup>
-          <ConfigGroup title="Usage infrastructure">
+          <ConfigGroup title="Usage infrastructure" blockIds={['networkEgress']}>
             <ToggleRow
               label="Network egress"
               description="Microsoft Global Network; first 100 GB free, then graduated CAD tiers"
@@ -774,7 +797,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
               />
             </ToggleRow>
           </ConfigGroup>
-          <ConfigGroup title="Observability">
+          <ConfigGroup title="Observability" blockIds={['observability']}>
             <ToggleRow
               label="Application Insights and Log Analytics"
               description="Ingestion, retention, archive, export, and scheduled alerts"
@@ -826,7 +849,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
               </div>
             </ToggleRow>
           </ConfigGroup>
-          <ConfigGroup title="Network processing">
+          <ConfigGroup title="Network processing" blockIds={['networking']}>
             <ToggleRow
               label="Private Link data"
               description="Processed ingress and egress in addition to endpoint hours"
@@ -909,7 +932,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
               </div>
             </ToggleRow>
           </ConfigGroup>
-          <ConfigGroup title="Disaster recovery">
+          <ConfigGroup title="Disaster recovery" blockIds={['disasterRecovery']}>
             <ToggleRow
               label="Service-specific secondary region"
               description="Secondary capacity by service; replaces the blanket replica ratio"
@@ -1004,7 +1027,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
         </Tabs.Content>
 
         <Tabs.Content value="change" className="config-tabs__content">
-          <ConfigGroup title="Lifecycle operations">
+          <ConfigGroup title="Lifecycle operations" blockIds={['evaluation', 'revalidation', 'finOps', 'support']}>
             <ToggleRow
               label="Automated evaluation"
               description="Explicit monthly evaluation-run volume"
@@ -1056,7 +1079,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog }: Conf
               />
             </ToggleRow>
           </ConfigGroup>
-          <ConfigGroup title="Commercial assumption">
+          <ConfigGroup title="Commercial assumption" blockIds={['commercialOffset']}>
             <NumberField
               label="Commercial offset"
               value={config.commercialOffsetPercent}

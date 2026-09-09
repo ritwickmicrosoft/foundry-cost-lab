@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowLeft, CheckCircle2, LoaderCircle, Sparkles } from 'lucide-react'
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   comparisonBriefCacheKey,
   parseComparisonBriefResponse,
@@ -101,6 +101,11 @@ function BriefSection({
 }
 
 export function ScenarioComparisonWorkspace() {
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
   const scenarios = useLabStore((state) => state.scenarios)
   const comparisonIds = useLabStore((state) => state.comparisonIds)
   const closeComparison = useLabStore((state) => state.closeComparison)
@@ -160,6 +165,7 @@ export function ScenarioComparisonWorkspace() {
         }
       } catch {}
       const response = await requestComparisonBrief(SUMMARY_BUYER_LENS, SUMMARY_COMPETITOR_LENS, analysis.facts)
+      if (!mounted.current) return
       try {
         window.localStorage.setItem(cacheKey, JSON.stringify(response))
       } catch {
@@ -242,19 +248,19 @@ export function ScenarioComparisonWorkspace() {
           <ComparisonRow label="Cost per monthly user" values={analysis.summaries.map((summary) => summary.costPerMonthlyUser === null ? 'Not available' : formatMoney(summary.costPerMonthlyUser, 2))} />
           <ComparisonRow label="Cost per 1K agent turns" values={analysis.summaries.map((summary) => summary.costPerThousandTurns === null ? 'Not available' : formatMoney(summary.costPerThousandTurns, 2))} />
           <ComparisonRow label="Pricing coverage" values={analysis.summaries.map((summary) => (
-            <span key={summary.id} className={`comparison-status comparison-status--${summary.complete ? 'complete' : 'partial'}`}>
-              {summary.complete ? <CheckCircle2 aria-hidden="true" /> : <AlertTriangle aria-hidden="true" />}
-              {summary.complete ? 'Complete' : `${summary.unpricedLineCount} unpriced`}
+            <span key={summary.id} className={`comparison-status comparison-status--${summary.complete && summary.lastKnownLineCount === 0 ? 'complete' : 'partial'}`}>
+              {summary.complete && summary.lastKnownLineCount === 0 ? <CheckCircle2 aria-hidden="true" /> : <AlertTriangle aria-hidden="true" />}
+              {summary.complete && summary.lastKnownLineCount === 0 ? 'Complete' : summary.pricingCoverage}
             </span>
           ))} />
           <ComparisonRow label="Security controls" values={analysis.summaries.map((summary) => `${summary.securityControlCount} of 5 included`)} />
           <ComparisonRow label="Private networking" values={analysis.summaries.map((summary) => summary.privateNetworking ? 'Included' : 'Excluded')} />
           <ComparisonRow label="Disaster recovery" values={analysis.summaries.map((summary) => summary.disasterRecovery ? 'Included' : 'Excluded')} />
         </div>
-        {analysis.summaries.some((summary) => !summary.complete) ? (
+        {analysis.summaries.some((summary) => !summary.complete || summary.lastKnownLineCount > 0) ? (
           <div className="comparison-caveat">
             <AlertTriangle aria-hidden="true" />
-            <span>Known subtotals are not equivalent to complete TCO where active lines remain unpriced.</span>
+            <span>Known subtotals are not equivalent to complete TCO where active lines remain unpriced. Last-known prices remain included but require verification.</span>
           </div>
         ) : null}
       </section>

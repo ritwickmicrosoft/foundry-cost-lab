@@ -60,6 +60,21 @@ describe('scenario comparison', () => {
     expect(analysis.summaries[1]).toMatchObject({ complete: false, unpricedLineCount: 1 })
   })
 
+  it('retains last-known pricing caveats in the scorecard and grounded brief facts', () => {
+    const retained = source('a', 100, 100)
+    retained.result.lines[0]!.provenance.verification = {
+      status: 'ambiguous', checkedAt: '2026-09-06T10:00:00Z', reason: 'Conflicting meters',
+    }
+    const analysis = buildScenarioComparison([retained, source('b', 120, 120)])
+
+    expect(analysis.summaries[0]).toMatchObject({
+      knownMonthlyTotal: 100, complete: true, unpricedLineCount: 0, lastKnownLineCount: 1,
+      pricingCoverage: '1 last-known price line',
+    })
+    expect(analysis.facts.find((fact) => fact.id === 'scenario:A:coverage')?.text).toContain('not verified')
+    expect(analysis.summaries[1].lastKnownLineCount).toBe(0)
+  })
+
   it('compares complete model portfolio routing assumptions', () => {
     const single = source('a', 100, 100)
     const quality = source('b', 120, 120)

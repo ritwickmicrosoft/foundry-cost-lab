@@ -1,6 +1,10 @@
 export const RETAIL_PRICES_URL = 'https://prices.azure.com/api/retail/prices'
 
 export interface RetailPriceItem {
+  meterId?: string
+  productId?: string
+  skuId?: string
+  type?: string
   currencyCode: string
   tierMinimumUnits?: number
   retailPrice: number

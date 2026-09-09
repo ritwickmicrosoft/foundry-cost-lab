@@ -1,4 +1,4 @@
-import type { Rate, RateCard, RateDiff } from '../contracts.js'
+import type { Rate, RateCard, RateDiff, RateVerification, RegionId } from '../contracts.js'
 import { fallbackRateCard } from '../fallbackRateCard.js'
 import { meterSpecs, type MeterSpec } from './meterSpecs.js'
 import { RETAIL_PRICES_URL, type RateLookupClient, type RetailPriceItem } from './retailPricesClient.js'
@@ -27,21 +27,41 @@ const isEffective = (item: RetailPriceItem, now: Date) => {
   return start <= now && (!end || end >= now)
 }
 
-function selectMeter(spec: MeterSpec, items: RetailPriceItem[], now: Date) {
-  return items
-    .filter((item) => spec.matches(item) && isEffective(item, now))
+function selectMeter(spec: MeterSpec, items: RetailPriceItem[], now: Date, region: RegionId): {
+  item?: RetailPriceItem
+  status: RateVerification['status']
+  reason?: string
+} {
+  const candidates = items
+    .filter((item) => spec.matches(item, region) && isEffective(item, now))
     .sort((left, right) => {
       if (left.isPrimaryMeterRegion !== right.isPrimaryMeterRegion) {
         return left.isPrimaryMeterRegion ? -1 : 1
       }
       return right.effectiveStartDate.localeCompare(left.effectiveStartDate)
-    })[0]
+    })
+  const preferred = candidates[0]
+  if (!preferred) return { status: 'unmatched', reason: 'No current matching Retail meter was returned.' }
+  const peers = candidates.filter((item) =>
+    item.isPrimaryMeterRegion === preferred.isPrimaryMeterRegion &&
+    item.effectiveStartDate === preferred.effectiveStartDate,
+  )
+  const identities = new Set(peers.map((item) => JSON.stringify([
+    item.meterId, item.productId, item.skuId, item.type,
+    item.currencyCode, item.armRegionName, item.productName, item.skuName,
+    item.meterName, item.unitOfMeasure, item.tierMinimumUnits ?? 0,
+    item.retailPrice, item.unitPrice, item.effectiveEndDate,
+  ])))
+  if (identities.size > 1) {
+    return { status: 'ambiguous', reason: 'Conflicting current Retail meters require review; no new price was selected.' }
+  }
+  return { item: preferred, status: 'verified' }
 }
 
 const sourceFor = (item: RetailPriceItem) =>
   `Azure Retail Prices API - ${item.meterName} - ${item.skuName} - ${item.armRegionName} - effective ${item.effectiveStartDate.slice(0, 10)}`
 
-const syncedRate = (item: RetailPriceItem, value: number, unit: string, asOf: string): Rate => ({
+const syncedRate = (item: RetailPriceItem, value: number, unit: string, asOf: string, checkedAt: string): Rate => ({
   value,
   unit,
   currency: 'CAD',
@@ -49,6 +69,7 @@ const syncedRate = (item: RetailPriceItem, value: number, unit: string, asOf: st
   sourceUrl: RETAIL_PRICES_URL,
   asOf,
   maintenance: 'synced',
+  verification: { status: 'verified', checkedAt },
   ...(item.tierMinimumUnits !== undefined ? { tierMinimumUnits: item.tierMinimumUnits } : {}),
 })
 
@@ -74,13 +95,31 @@ export async function buildSyncedRateCard(
       query = client.query(filter)
       queryCache.set(filter, query)
     }
-    const match = selectMeter(spec, await query, now)
+    const selection = selectMeter(spec, await query, now, current.region)
+    const match = selection.item
     const normalized = match ? spec.normalize(match) : null
     if (!match || !normalized) {
       unmatchedKeys.add(spec.key)
+      const previous: Rate = rates[spec.key] ?? {
+        value: null,
+        unit: 'unpriced',
+        currency: 'CAD',
+        source: `Azure Retail Prices API - no verified match for ${spec.key} in ${current.region}`,
+        sourceUrl: RETAIL_PRICES_URL,
+        asOf,
+        maintenance: 'synced',
+      }
+      rates[spec.key] = {
+        ...previous,
+        verification: {
+          status: selection.status === 'ambiguous' ? 'ambiguous' : 'unmatched',
+          checkedAt: now.toISOString(),
+          reason: selection.reason ?? 'The current Retail meter could not be normalized.',
+        },
+      }
       continue
     }
-    rates[spec.key] = syncedRate(match, normalized.value, normalized.unit, asOf)
+    rates[spec.key] = syncedRate(match, normalized.value, normalized.unit, asOf, now.toISOString())
     matchedKeys.push(spec.key)
     unmatchedKeys.delete(spec.key)
   }

@@ -477,6 +477,15 @@ export function validateRateCard(value: unknown): RateCard {
     if (entry.value !== null && (typeof entry.value !== 'number' || !Number.isFinite(entry.value))) {
       throw new Error(`Rate ${key} value must be finite or null.`)
     }
+    if (entry.verification !== undefined) {
+      const verification = entry.verification
+      if (!verification || typeof verification !== 'object' ||
+        !['verified', 'unmatched', 'ambiguous'].includes(verification.status) ||
+        typeof verification.checkedAt !== 'string' || !Number.isFinite(Date.parse(verification.checkedAt)) ||
+        (verification.reason !== undefined && typeof verification.reason !== 'string')) {
+        throw new Error(`Rate ${key} verification is invalid.`)
+      }
+    }
     if (entry.tierMinimumUnits !== undefined && (
       typeof entry.tierMinimumUnits !== 'number' ||
       !Number.isFinite(entry.tierMinimumUnits) ||

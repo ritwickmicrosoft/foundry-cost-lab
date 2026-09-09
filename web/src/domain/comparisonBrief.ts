@@ -78,12 +78,14 @@ const hash = (value: string) => {
   return (result >>> 0).toString(36)
 }
 
+export const COMPARISON_BRIEF_CACHE_PREFIX = 'comparison-brief:'
+
 export function comparisonBriefCacheKey(
   buyerLens: BuyerLens,
   competitorLens: CompetitorLens,
   facts: readonly ComparisonFact[],
 ) {
-  return `comparison-brief:${hash(JSON.stringify({ buyerLens, competitorLens, facts }))}`
+  return `${COMPARISON_BRIEF_CACHE_PREFIX}${hash(JSON.stringify({ buyerLens, competitorLens, facts }))}`
 }
 
 export async function readComparisonAiStatus(): Promise<ComparisonAiStatus> {

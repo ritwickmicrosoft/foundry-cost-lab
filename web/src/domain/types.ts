@@ -115,6 +115,12 @@ export const HOSTED_AGENT_SANDBOXES = {
 
 export type HostedAgentSandboxSize = keyof typeof HOSTED_AGENT_SANDBOXES
 
+export interface RateVerification {
+  status: 'verified' | 'unmatched' | 'ambiguous'
+  checkedAt: string
+  reason?: string
+}
+
 export interface Rate {
   value: number | null
   unit: string
@@ -126,6 +132,7 @@ export interface Rate {
   lastReviewed?: string
   unavailableReason?: string
   tierMinimumUnits?: number
+  verification?: RateVerification
 }
 
 export interface RateCard {
@@ -233,7 +240,7 @@ export interface CostConfig {
   guardrail: {
     contentSafety: { enabled: boolean; rateKey: string; monthlyTextRecords: number }
     defenderForAi: { enabled: boolean; rateKey: string }
-    sentinel: { enabled: boolean; rateKey: string; ingestedGbPerMonth: number }
+    sentinel: { enabled: boolean; rateKey: string; ingestedGbPerMonth: number | null }
     entra: { enabled: boolean; rateKey: string }
     purview: { enabled: boolean; rateKey: string; capacityUnits: number }
   }
@@ -309,6 +316,7 @@ export interface LineProvenance {
   maintenance: RateMaintenance
   lastReviewed?: string
   unavailableReason?: string
+  verification?: RateVerification
 }
 
 export interface CostLine {

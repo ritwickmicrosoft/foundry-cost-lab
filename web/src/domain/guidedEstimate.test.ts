@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { FOUNDRY_MODEL_CATALOG } from './foundryCatalog'
 import { buildGuidedConfig, DEFAULT_GUIDED_ANSWERS } from './guidedEstimate'
+import { computeCost } from './computeCost'
+import { fallbackRateCard } from './rates'
 
 describe('guided estimate mapping', () => {
+  it.each(['employee-assistant', 'customer-agent', 'workflow-agent', 'explore'] as const)('does not silently add Sentinel when %s moves to production', (useCase) => {
+    for (const posture of ['poc', 'production'] as const) {
+      const config = buildGuidedConfig({ ...DEFAULT_GUIDED_ANSWERS, useCase, posture }, FOUNDRY_MODEL_CATALOG, '2026-09-01')
+      expect(config.guardrail.sentinel).toMatchObject({ enabled: false, ingestedGbPerMonth: null })
+      expect(computeCost(config, fallbackRateCard).lines.some((line) => line.blockId === 'sentinel')).toBe(false)
+    }
+  })
+
   it('maps a pay-per-use pilot into transparent calculator inputs', () => {
     const config = buildGuidedConfig({
       ...DEFAULT_GUIDED_ANSWERS,

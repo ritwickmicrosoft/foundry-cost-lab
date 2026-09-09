@@ -20,6 +20,20 @@ describe('rate-card safeguards', () => {
     expect(() => validateRateCard(invalid)).toThrow('currency must be CAD')
   })
 
+  it('accepts verification evidence and rejects malformed evidence', () => {
+    const card = structuredClone(fallbackRateCard)
+    card.rates['model.primary.input']!.verification = {
+      status: 'ambiguous', checkedAt: '2026-09-06T10:00:00Z', reason: 'Conflicting meters',
+    }
+    expect(validateRateCard(card)).toEqual(card)
+    for (const verification of [null, {}, { status: 'trusted', checkedAt: '2026-09-06' },
+      { status: 'verified', checkedAt: 'not-a-date' }, { status: 'verified', checkedAt: '2026-09-06', reason: 42 }]) {
+      const invalid = structuredClone(card)
+      Object.assign(invalid.rates['model.primary.input']!, { verification })
+      expect(() => validateRateCard(invalid)).toThrow('verification is invalid')
+    }
+  })
+
   it('escalates freshness at 24 hours, seven days, or immediately after failure', () => {
     const card = structuredClone(fallbackRateCard)
     card.asOf = '2026-08-20'

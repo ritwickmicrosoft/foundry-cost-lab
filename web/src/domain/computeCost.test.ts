@@ -88,10 +88,28 @@ const fixtureRateCard = (): RateCard => ({
 const config = (): CostConfig => {
   const value = createPreset('production')
   value.commercialModel.ptuCapacityTokensPerUnitMonth = 12_000_000
+  value.guardrail.sentinel.enabled = true
+  value.guardrail.sentinel.ingestedGbPerMonth = 25
   return value
 }
 
 describe('computeCost', () => {
+  it.each(['poc', 'production'] as const)('does not assume Sentinel consumption for a new %s estimate', (posture) => {
+    const input = createPreset(posture)
+    expect(input.guardrail.sentinel.enabled).toBe(false)
+    expect(input.guardrail.sentinel.ingestedGbPerMonth).toBeNull()
+    expect(computeCost(input, fixtureRateCard()).lines.some((line) => line.blockId === 'sentinel')).toBe(false)
+
+    input.guardrail.sentinel.enabled = true
+    const result = computeCost(input, fixtureRateCard())
+    expect(result.lines.find((line) => line.blockId === 'sentinel')).toMatchObject({
+      amount: null,
+      quantityUnit: 'GB',
+      detail: 'Billable monthly ingestion required',
+    })
+    expect(result.complete).toBe(false)
+  })
+
   it('keeps POC defaults fully priced and production unknowns limited to explicit decisions', () => {
     const poc = computeCost(createPreset('poc'), fallbackRateCard)
     const production = computeCost(createPreset('production'), fallbackRateCard)
@@ -106,6 +124,29 @@ describe('computeCost', () => {
       'guardrail-purview',
       'run-commercial-overflow-unpriced',
     ])
+  })
+
+  it.each([0, 0.5, 25, 25_000])('prices exactly %s explicit billable Sentinel GB without user or environment multipliers', (billableGb) => {
+    const input = createPreset('poc')
+    input.guardrail.sentinel.enabled = true
+    input.guardrail.sentinel.ingestedGbPerMonth = billableGb
+    const card = fixtureRateCard()
+    const line = computeCost(input, card).lines.find((entry) => entry.blockId === 'sentinel')
+    expect(line).toMatchObject({ amount: billableGb * 3, quantity: billableGb, unitRate: 3, scale: 1 })
+    input.environments = 5
+    input.workload.monthlyUsers = 10_000
+    input.secondaryRegionRatio = 1
+    expect(computeCost(input, card).lines.find((entry) => entry.blockId === 'sentinel')?.amount).toBe(line!.amount)
+    expect(line!.assumption).toContain('Simplified PAYG includes ingestion and Sentinel analysis')
+  })
+
+  it.each([-1, NaN, Infinity])('does not treat invalid Sentinel volume %s as a free allocation', (volume) => {
+    const input = createPreset('poc')
+    input.guardrail.sentinel.enabled = true
+    input.guardrail.sentinel.ingestedGbPerMonth = volume
+    expect(computeCost(input, fixtureRateCard()).lines.find((line) => line.blockId === 'sentinel')).toMatchObject({
+      amount: null, detail: 'Billable monthly ingestion required',
+    })
   })
 
   it('is deterministic and does not mutate its inputs', () => {

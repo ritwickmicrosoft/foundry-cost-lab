@@ -1,12 +1,13 @@
-import { AlertCircle, Bot, CalendarClock, CheckCircle2, Gauge, RefreshCw, ShieldCheck, TrendingUp } from 'lucide-react'
-import { lazy, Suspense } from 'react'
+import { AlertCircle, ArrowUpRight, Bot, CalendarClock, CheckCircle2, ChevronDown, Gauge, RefreshCw, ShieldCheck, TrendingUp, Users } from 'lucide-react'
+import { lazy, Suspense, useState } from 'react'
 import type { FoundryModelCatalogEntry } from '../domain/foundryCatalog'
+import { getLastKnownRateLines, getPricingCoverageSummary, usesLastKnownRate } from '../domain/pricingVerification'
 import {
   buildPricingReadiness,
   type PricingCoverageStatus,
   type PricingReadiness,
 } from '../domain/pricingReadiness'
-import { COST_TIERS, REGION_LABELS, type CostConfig, type CostResult, type CostTier, type RateCard } from '../domain/types'
+import { COST_TIERS, REGION_LABELS, type CostConfig, type CostLine, type CostResult, type CostTier, type RateCard } from '../domain/types'
 import type { RateDiffState } from '../hooks/useRateDiff'
 import { formatDate, formatMoney, formatNumber, formatPercent } from '../utils/format'
 import { ProvenanceTooltip } from './ProvenanceTooltip'
@@ -24,6 +25,7 @@ const COVERAGE_LABELS: Record<PricingCoverageStatus, string> = {
   exact: 'Retail',
   manual: 'Fallback',
   mixed: 'Mixed',
+  'last-known': 'Last-known',
   unpriced: 'Unpriced',
   inactive: 'Excluded',
 }
@@ -114,6 +116,7 @@ function CostLines({ result }: { result: CostResult }) {
                   </div>
                   <div className="cost-line__amount">
                     {line.amount === null ? <span>Unpriced</span> : <strong>{formatMoney(line.amount, 2)}</strong>}
+                    {usesLastKnownRate(line) ? <CoverageBadge status="last-known" /> : null}
                     <ProvenanceTooltip line={line} />
                   </div>
                 </div>
@@ -157,9 +160,16 @@ function CoverageBadge({ status }: { status: PricingCoverageStatus }) {
   )
 }
 
-function PricingReadinessPanel({ readiness }: { readiness: PricingReadiness }) {
+type CostEditTarget = Pick<CostLine, 'tier' | 'blockId'>
+
+function PricingReadinessPanel({ readiness, result, onEdit }: {
+  readiness: PricingReadiness
+  result: CostResult
+  onEdit: (target: CostEditTarget) => void
+}) {
+  const reviewLines = result.lines.filter((line) => line.amount === null || usesLastKnownRate(line))
   return (
-    <section className="result-section" aria-labelledby="pricing-readiness-title">
+    <section className="result-section" id="pricing-readiness" aria-labelledby="pricing-readiness-title" tabIndex={-1}>
       <div className="section-heading">
         <div>
           <span className="eyebrow">Decision gate</span>
@@ -184,6 +194,8 @@ function PricingReadinessPanel({ readiness }: { readiness: PricingReadiness }) {
         </div>
       </div>
 
+      <details className="result-disclosure">
+        <summary>Model rate details<ChevronDown aria-hidden="true" /></summary>
       <div className="pricing-matrix" role="table" aria-label="Selected model pricing matrix">
         <div className="pricing-matrix__head" role="row">
           <span role="columnheader">Dimension</span>
@@ -205,6 +217,7 @@ function PricingReadinessPanel({ readiness }: { readiness: PricingReadiness }) {
             <span role="cell" className="pricing-matrix__source">
               {dimension.source}
               <small>{dimension.asOf}</small>
+              {dimension.verificationReason ? <small>{dimension.verificationReason}</small> : null}
             </span>
           </div>
         ))}
@@ -213,13 +226,26 @@ function PricingReadinessPanel({ readiness }: { readiness: PricingReadiness }) {
         ) : null}
       </div>
 
-      {readiness.decisionBlockers.length > 0 ? (
+      </details>
+
+      {readiness.decisionBlockers.length > 0 || reviewLines.length > 0 ? (
         <div className="decision-blockers">
           <AlertCircle aria-hidden="true" />
           <div>
             <strong>Approval blocked</strong>
-            <small>Complete each unpriced deployment under Run → Primary model → Model portfolio.</small>
-            <span>{readiness.decisionBlockers.join(' · ')}</span>
+            <small>Unpriced and last-known rates require review.</small>
+            {readiness.decisionBlockers.length > 0 ? <span>{readiness.decisionBlockers.join(' · ')}</span> : null}
+            <ul className="pricing-actions">
+              {reviewLines.map((line) => (
+                <li key={line.id}>
+                  <button type="button" onClick={() => onEdit(line)} aria-label={`Edit ${line.label}`}>
+                    <span>{line.label}<small>{usesLastKnownRate(line) ? 'Last-known rate needs verification' : 'Unpriced'}</small></span>
+                    <ArrowUpRight aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+              {reviewLines.length === 0 ? <li><button type="button" onClick={() => onEdit({ tier: 'run', blockId: 'commercialModel' })}>Edit model pricing<ArrowUpRight aria-hidden="true" /></button></li> : null}
+            </ul>
           </div>
         </div>
       ) : null}
@@ -233,6 +259,8 @@ function PricingReadinessPanel({ readiness }: { readiness: PricingReadiness }) {
                 ? 'Not included in this scenario'
                 : block.missingDimensions.length > 0
                   ? block.missingDimensions.join(', ')
+                  : block.status === 'last-known'
+                    ? `${block.lineCount} priced lines; includes last-known rates`
                   : `${block.lineCount} priced line${block.lineCount === 1 ? '' : 's'}`}
             </span>
             <CoverageBadge status={block.status} />
@@ -282,31 +310,40 @@ export function ResultsPanel({
   rateCard,
   rateDiff,
   modelCatalog,
+  onEditCostLine,
+  onReviewPricing,
 }: {
   result: CostResult
   config: CostConfig
   rateCard: RateCard
   rateDiff: RateDiffState
   modelCatalog: readonly FoundryModelCatalogEntry[]
+  onEditCostLine: (target: CostEditTarget) => void
+  onReviewPricing: () => void
 }) {
+  const [planningOpen, setPlanningOpen] = useState(false)
   const elapsed = elapsedDays(config.periodStart, new Date())
   const accrued = result.dailyBurn * elapsed
-  const unpricedCount = result.lines.filter((line) => line.amount === null).length
+  const pricingCurrent = result.complete && getLastKnownRateLines(result).length === 0
   const pricingReadiness = buildPricingReadiness(config, rateCard, result, modelCatalog)
+  const pricedCharges = result.lines.reduce((total, line) => total + Math.max(0, line.amount ?? 0), 0)
+  const drivers = result.lines.filter((line) => (line.amount ?? 0) > 0)
+    .sort((left, right) => (right.amount ?? 0) - (left.amount ?? 0)).slice(0, 3)
 
   return (
-    <section className="results-panel" aria-label="Cost results" aria-live="polite">
+    <section className="results-panel" id="cost-results" aria-label="Cost results" tabIndex={-1}>
       <div className="headline">
         <div>
-          <span className="eyebrow">{result.complete ? 'Estimated monthly cost' : 'Known monthly subtotal'}</span>
+          <span className="eyebrow">{pricingCurrent ? 'Estimated monthly cost' : 'Known monthly subtotal'}</span>
           <div className="headline__value">{formatMoney(result.knownGrandTotal)}</div>
           <div className="headline__meta">
-            {result.complete ? (
+            {pricingCurrent ? (
               <span className="status-inline status-inline--ok"><CheckCircle2 aria-hidden="true" />All active lines priced</span>
             ) : (
-              <span className="status-inline status-inline--warning"><AlertCircle aria-hidden="true" />{unpricedCount} active line{unpricedCount === 1 ? '' : 's'} unpriced</span>
+              <span className="status-inline status-inline--warning"><AlertCircle aria-hidden="true" />{getPricingCoverageSummary(result)}</span>
             )}
             <span>CAD list-rate estimate</span>
+            {!pricingCurrent ? <button type="button" className="button button--quiet" onClick={onReviewPricing}>Review pricing<ArrowUpRight aria-hidden="true" /></button> : null}
           </div>
         </div>
         <div className="headline__stamp">
@@ -317,12 +354,37 @@ export function ResultsPanel({
       </div>
 
       <div className="metric-strip">
-        <div><TrendingUp aria-hidden="true" /><span>Daily burn<strong>{formatMoney(result.dailyBurn, 2)}</strong></span></div>
-        <div><CalendarClock aria-hidden="true" /><span>Accrued since {formatDate(config.periodStart)}<strong>{formatMoney(accrued)}</strong><small>{elapsed} of 30 modelled days</small></span></div>
+        <div><Users aria-hidden="true" /><span>Known cost / monthly user<strong>{config.workload.monthlyUsers > 0 ? formatMoney(result.knownGrandTotal / config.workload.monthlyUsers, 2) : 'Not available'}</strong></span></div>
+        <div><Gauge aria-hidden="true" /><span>Known cost / 1K turns<strong>{result.metrics.monthlyTurns > 0 ? formatMoney(result.knownGrandTotal / result.metrics.monthlyTurns * 1000, 2) : 'Not available'}</strong></span></div>
         <div><Bot aria-hidden="true" /><span>Agent turns<strong>{formatNumber(result.metrics.monthlyTurns)}</strong><small>{formatNumber(result.metrics.mcpSchemaTokens)} MCP schema tokens</small></span></div>
       </div>
 
-      <PricingReadinessPanel readiness={pricingReadiness} />
+      <section className="result-section" aria-labelledby="cost-drivers-title">
+        <div className="section-heading"><div><span className="eyebrow">Largest contributors</span><h2 id="cost-drivers-title">Known cost drivers</h2></div></div>
+        <ol className="cost-drivers">
+          {drivers.map((line) => (
+            <li key={line.id}>
+              <button type="button" onClick={() => onEditCostLine(line)} aria-label={`Edit cost driver: ${line.label}`}>
+                <span><strong>{line.label}</strong><small>{TIER_LABELS[line.tier]} / {formatPercent((line.amount ?? 0) / pricedCharges)} of priced charges</small></span>
+                <strong>{formatMoney(line.amount ?? 0)}</strong><ArrowUpRight aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ol>
+        {drivers.length === 0 ? <p className="rate-diff-empty">No priced charges in this estimate.</p> : null}
+      </section>
+
+      <TierBreakdown result={result} />
+      <PricingReadinessPanel readiness={pricingReadiness} result={result} onEdit={onEditCostLine} />
+      <CostLines result={result} />
+
+      <details className="result-disclosure" onToggle={(event) => setPlanningOpen(event.currentTarget.open)}>
+        <summary>Projection, capacity and rate history<ChevronDown aria-hidden="true" /></summary>
+        {planningOpen ? <>
+      <div className="metric-strip">
+        <div><TrendingUp aria-hidden="true" /><span>Modeled daily spend<strong>{formatMoney(result.dailyBurn, 2)}</strong></span></div>
+        <div><CalendarClock aria-hidden="true" /><span>Modeled spend to date<strong>{formatMoney(accrued)}</strong><small>Since {formatDate(config.periodStart)} / {elapsed} of 30 modeled days</small></span></div>
+      </div>
 
       <section className="result-section" aria-labelledby="projection-title">
         <div className="section-heading">
@@ -337,10 +399,10 @@ export function ResultsPanel({
         </Suspense>
       </section>
 
-      <TierBreakdown result={result} />
       <Breakeven result={result} />
       <RateChanges state={rateDiff} />
-      <CostLines result={result} />
+        </> : null}
+      </details>
     </section>
   )
 }

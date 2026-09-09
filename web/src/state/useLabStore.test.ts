@@ -1,8 +1,132 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { createPreset } from '../domain/presets'
 import { MAX_COMPARISON_SCENARIOS } from '../domain/scenarioComparison'
 import type { CostConfig } from '../domain/types'
-import { migrateLabState, type SavedScenario } from './useLabStore'
+import { migrateLabState, useLabStore, type SavedScenario } from './useLabStore'
+
+describe('calculator edit history', () => {
+  beforeEach(() => {
+    useLabStore.setState({ config: createPreset('poc'), undoStack: [], redoStack: [], editGroupActive: false, editGroupRecorded: false, scenarios: [] })
+  })
+
+  it('groups a field edit and restores its final value with redo', () => {
+    const original = structuredClone(useLabStore.getState().config)
+    useLabStore.getState().beginConfigEdit()
+    for (const users of [5, 50, 500]) {
+      useLabStore.getState().updateConfig((config) => { config.workload.monthlyUsers = users })
+    }
+    useLabStore.getState().endConfigEdit()
+    expect(useLabStore.getState().undoStack).toHaveLength(1)
+    useLabStore.getState().undoConfig()
+    expect(useLabStore.getState().config).toEqual(original)
+    useLabStore.getState().redoConfig()
+    expect(useLabStore.getState().config.workload.monthlyUsers).toBe(500)
+  })
+
+  it('changes delivery stage without replacing workload, model, or infrastructure choices', () => {
+    useLabStore.getState().updateConfig((config) => {
+      config.workload.monthlyUsers = 321
+      config.workload.requestsPerUserPerDay = 6
+      config.workload.agentTurnMultiplier = 3
+      config.region = 'eastus2'
+      config.environments = 2
+      config.guardrail.sentinel.enabled = true
+      config.guardrail.sentinel.ingestedGbPerMonth = 12.5
+    })
+    const original = structuredClone(useLabStore.getState().config)
+    useLabStore.getState().applyPreset('production')
+    expect(useLabStore.getState().config).toEqual({ ...original, posture: 'production' })
+    useLabStore.getState().applyPreset('poc')
+    expect(useLabStore.getState().config).toEqual(original)
+  })
+
+  it('preserves explicitly provisioned primary and DR capacity through stage changes and undo', () => {
+    const explicit = createPreset('production')
+    explicit.commercialModel.ptuUnits = 30
+    explicit.disasterRecovery.secondaryPtuUnits = 15
+    explicit.environments = 4
+    explicit.commercialOffsetPercent = 5
+    useLabStore.setState({ config: explicit, undoStack: [], redoStack: [] })
+    useLabStore.getState().applyPreset('poc')
+    expect(useLabStore.getState().config).toEqual({ ...explicit, posture: 'poc' })
+    expect(useLabStore.getState().undoStack).toHaveLength(1)
+    useLabStore.getState().undoConfig()
+    expect(useLabStore.getState().config).toEqual(explicit)
+    useLabStore.getState().redoConfig()
+    expect(useLabStore.getState().config).toEqual({ ...explicit, posture: 'poc' })
+  })
+
+  it('does not create history or reset settings when the current stage is selected again', () => {
+    const original = structuredClone(useLabStore.getState().config)
+    useLabStore.getState().applyPreset('poc')
+    expect(useLabStore.getState().config).toEqual(original)
+    expect(useLabStore.getState().undoStack).toHaveLength(0)
+  })
+
+  it('undoes presets and scenario loads without changing saved scenarios', () => {
+    useLabStore.getState().saveScenario('Pilot', '2026-09-06')
+    const saved = structuredClone(useLabStore.getState().scenarios)
+    useLabStore.getState().applyPreset('production')
+    useLabStore.getState().loadScenario(saved[0]!.id)
+    expect(useLabStore.getState().config.posture).toBe('poc')
+    useLabStore.getState().undoConfig()
+    expect(useLabStore.getState().config.posture).toBe('production')
+    useLabStore.getState().undoConfig()
+    expect(useLabStore.getState().config.posture).toBe('poc')
+    expect(useLabStore.getState().scenarios).toEqual(saved)
+  })
+
+  it('bounds history, skips unchanged inputs, and clears redo after a new edit', () => {
+    useLabStore.getState().updateConfig(() => {})
+    expect(useLabStore.getState().undoStack).toHaveLength(0)
+    for (let users = 1; users <= 60; users += 1) {
+      useLabStore.getState().updateConfig((config) => { config.workload.monthlyUsers = users })
+    }
+    expect(useLabStore.getState().undoStack).toHaveLength(50)
+    useLabStore.getState().undoConfig()
+    useLabStore.getState().updateConfig((config) => { config.workload.monthlyUsers = 999 })
+    expect(useLabStore.getState().redoStack).toHaveLength(0)
+    const persisted = useLabStore.persist.getOptions().partialize?.(useLabStore.getState())
+    expect(persisted).not.toHaveProperty('undoStack')
+    expect(persisted).not.toHaveProperty('redoStack')
+  })
+
+  it('resets all scenario data and history without allowing undo to recover it', () => {
+    useLabStore.getState().applyPreset('production')
+    useLabStore.getState().updateConfig((config) => {
+      config.region = 'eastus2'
+      config.workload.monthlyUsers = 9000
+      config.commercialModel.priceProfiles.push({
+        modelId: config.commercialModel.modelId, deploymentSku: 'global-standard',
+        source: 'Private offer', asOf: '2026-09-07', inputRateCadPerMillion: 1,
+        cachedInputRateCadPerMillion: null, outputRateCadPerMillion: 2,
+        batchInputRateCadPerMillion: null, batchOutputRateCadPerMillion: null,
+        ptuHourlyRateCad: null, managedComputeHourlyRateCad: null, usageUnitRateCad: null,
+      })
+    })
+    useLabStore.getState().saveScenario('First', '2026-09-07')
+    useLabStore.getState().saveScenario('Second', '2026-09-07')
+    for (const scenario of useLabStore.getState().scenarios) useLabStore.getState().toggleComparison(scenario.id)
+    useLabStore.getState().openComparison()
+    useLabStore.getState().undoConfig()
+    useLabStore.getState().beginConfigEdit()
+
+    useLabStore.getState().resetWorkspace()
+
+    const expected = createPreset('poc')
+    expected.periodStart = `${new Date().toISOString().slice(0, 7)}-01`
+    expect(useLabStore.getState()).toMatchObject({
+      config: expected, scenarios: [], comparisonIds: [], comparisonOpen: false,
+      undoStack: [], redoStack: [], editGroupActive: false, editGroupRecorded: false,
+    })
+    useLabStore.getState().undoConfig()
+    useLabStore.getState().redoConfig()
+    expect(useLabStore.getState().config).toEqual(expected)
+    expect(useLabStore.persist.getOptions().partialize?.(useLabStore.getState())).toEqual({
+      config: expected, scenarios: [], comparisonIds: [],
+    })
+  })
+})
 
 function versionOneConfig(): CostConfig {
   const config = createPreset('production')
@@ -22,6 +146,24 @@ function versionOneConfig(): CostConfig {
 }
 
 describe('lab-state migrations', () => {
+  it('preserves existing Sentinel allocations in current and saved state', () => {
+    const config = createPreset('production')
+    config.guardrail.sentinel = { enabled: true, rateKey: 'guardrail.sentinel.gb', ingestedGbPerMonth: 25_000 }
+    const scenario = {
+      id: 'existing-sentinel', name: 'Existing Sentinel allocation', config: structuredClone(config),
+      rateCardAsOf: '2026-08-23', createdAt: '2026-08-23T00:00:00Z', updatedAt: '2026-08-23T00:00:00Z',
+    }
+    const migrated = migrateLabState({ config, scenarios: [scenario], comparisonIds: [] }, 7)
+    expect(migrated.config.guardrail.sentinel).toEqual(config.guardrail.sentinel)
+    expect(migrated.scenarios[0]?.config.guardrail.sentinel).toEqual(config.guardrail.sentinel)
+    useLabStore.setState({ config, scenarios: [scenario] })
+    useLabStore.getState().applyPreset('production')
+    expect(useLabStore.getState().config.guardrail.sentinel).toEqual(config.guardrail.sentinel)
+    useLabStore.getState().loadScenario('existing-sentinel')
+    expect(useLabStore.getState().config.guardrail.sentinel).toEqual(config.guardrail.sentinel)
+    expect(useLabStore.getState().scenarios[0]?.config.guardrail.sentinel).toEqual(config.guardrail.sentinel)
+  })
+
   it('migrates version-7 single-model state to a 100% primary route', () => {
     const config = createPreset('poc')
     delete (config as Partial<CostConfig>).modelPortfolio

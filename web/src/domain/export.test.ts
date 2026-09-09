@@ -7,6 +7,18 @@ import { FOUNDRY_MODEL_CATALOG } from './foundryCatalog'
 import { fallbackRateCard } from './rates'
 
 describe('scenario export', () => {
+  it.each([null, 0, 75.5, 25_000])('round-trips Sentinel usage %s without replacing it with a preset volume', (volume) => {
+    const config = createPreset('production')
+    config.guardrail.sentinel.enabled = true
+    config.guardrail.sentinel.ingestedGbPerMonth = volume
+    const result = computeCost(config, fallbackRateCard)
+    const exported = buildScenarioExport(config, result, fallbackRateCard, '2026-09-08T12:00:00Z')
+    const imported = parseScenarioExport(JSON.parse(JSON.stringify(exported)))
+    expect(imported.config.guardrail.sentinel).toEqual(config.guardrail.sentinel)
+    expect(computeCost(imported.config, fallbackRateCard).lines.find((line) => line.blockId === 'sentinel'))
+      .toEqual(result.lines.find((line) => line.blockId === 'sentinel'))
+  })
+
   it('includes the exact rate-card date and line provenance', () => {
     const config = createPreset('poc')
     const result = computeCost(config, fallbackRateCard)

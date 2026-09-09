@@ -1,31 +1,39 @@
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { CircleAlert, CircleDollarSign, ExternalLink } from 'lucide-react'
 import type { CostLine } from '../domain/types'
+import { usesLastKnownRate } from '../domain/pricingVerification'
 import { formatDate, formatMoney, formatNumber } from '../utils/format'
 
 export function ProvenanceTooltip({ line }: { line: CostLine }) {
+  const lastKnown = usesLastKnownRate(line)
   return (
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
         <button
           type="button"
-          className={`source-button${line.amount === null ? ' source-button--missing' : ''}`}
+          className={`source-button${line.amount === null || lastKnown ? ' source-button--missing' : ''}`}
           aria-label={`Show source for ${line.label}`}
         >
-          {line.amount === null ? <CircleAlert aria-hidden="true" /> : <CircleDollarSign aria-hidden="true" />}
+          {line.amount === null || lastKnown ? <CircleAlert aria-hidden="true" /> : <CircleDollarSign aria-hidden="true" />}
         </button>
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content className="provenance" side="left" sideOffset={8} collisionPadding={12}>
           <div className="provenance__header">
             <strong>{line.label}</strong>
-            <span className={`badge badge--${line.provenance.maintenance}`}>
-              {line.provenance.maintenance}
+            <span className={`badge badge--${lastKnown ? 'manual' : line.provenance.maintenance}`}>
+              {lastKnown ? 'Last-known' : line.provenance.maintenance}
             </span>
           </div>
           <dl>
             <div><dt>Source</dt><dd>{line.provenance.source}</dd></div>
             <div><dt>As of</dt><dd>{formatDate(line.provenance.asOf)}</dd></div>
+            {line.provenance.verification ? (
+              <>
+                <div><dt>Latest check</dt><dd>{formatDate(line.provenance.verification.checkedAt)}: {line.provenance.verification.status}</dd></div>
+                {line.provenance.verification.reason ? <div><dt>Verification</dt><dd>{line.provenance.verification.reason}</dd></div> : null}
+              </>
+            ) : null}
             {line.provenance.lastReviewed ? (
               <div><dt>Reviewed</dt><dd>{formatDate(line.provenance.lastReviewed)}</dd></div>
             ) : null}

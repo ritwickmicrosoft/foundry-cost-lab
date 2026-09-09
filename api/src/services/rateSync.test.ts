@@ -56,6 +56,37 @@ class RecordingRepository implements SyncRepository {
 }
 
 describe('rate sync transaction', () => {
+  it('syncs GPT-5.4-mini Global Standard prices already denominated per million tokens', async () => {
+    const current = structuredClone(fallbackRateCard)
+    current.region = 'eastus'
+    const prefix = 'model.catalog.direct-azure-gpt-5-4-mini-2026-03-17.global-standard'
+    const meters = [
+      ['Inp', 1.0395, 'input'],
+      ['cd Inp', 0.104, 'cachedInput'],
+      ['Opt', 6.2372, 'output'],
+    ] as const
+    const client: RateLookupClient = {
+      query: async () => meters.map(([dimension, price]) => ({
+        ...cadMeter(`5.4 mini ${dimension} Gl 1M Tokens`, 'Azure OpenAI GPT5', `5.4 mini ${dimension} Gl`, price, '1M'),
+        armRegionName: 'eastus',
+        type: 'Consumption',
+        effectiveStartDate: '2026-03-01T00:00:00Z',
+      })),
+    }
+    const outcome = await executeRateSync(new RecordingRepository(current), client, new Date('2026-09-07T10:00:00Z'))
+
+    for (const [, price, dimension] of meters) {
+      expect(outcome.rateCard.rates[`${prefix}.${dimension}`]).toMatchObject({
+        value: price,
+        unit: 'CAD/million tokens',
+        currency: 'CAD',
+        asOf: '2026-09-07',
+        verification: { status: 'verified' },
+      })
+      expect(outcome.matchedKeys).toContain(`${prefix}.${dimension}`)
+    }
+  })
+
   it('normalizes a partial token match and preserves manual rates', async () => {
     const repository = new RecordingRepository()
     const client: RateLookupClient = { query: async () => [inputMeter()] }
@@ -68,6 +99,130 @@ describe('rate sync transaction', () => {
     expect(outcome.rateCard.syncStatus).toBe('partial')
     expect(outcome.rateCard.unmatchedKeys).toContain('model.primary.output')
     expect(repository.events).toEqual(['read', 'snapshot', 'promote'])
+  })
+
+  it('creates an explicit unpriced mini entry when the region has no verified meter', async () => {
+    const foreignMeter = {
+      ...cadMeter('5.4 mini Inp Gl 1M Tokens', 'Azure OpenAI GPT5', '5.4 mini Inp Gl', 1.0395, '1M'),
+      armRegionName: 'eastus', type: 'Consumption',
+    }
+    const client: RateLookupClient = { query: async () => [inputMeter(), foreignMeter] }
+    const outcome = await executeRateSync(new RecordingRepository(), client, new Date('2026-09-07T10:00:00Z'))
+    const key = 'model.catalog.direct-azure-gpt-5-4-mini-2026-03-17.global-standard.input'
+    expect(outcome.rateCard.rates[key]).toMatchObject({ value: null, verification: { status: 'unmatched' } })
+    expect(outcome.rateCard.unmatchedKeys).toContain(key)
+    expect(outcome.matchedKeys).not.toContain(key)
+  })
+
+  it('retains a previous mini price as last-known when equally preferred meters conflict', async () => {
+    const current = structuredClone(fallbackRateCard)
+    current.region = 'eastus'
+    const key = 'model.catalog.direct-azure-gpt-5-4-mini-2026-03-17.global-standard.input'
+    current.rates[key] = { ...current.rates['model.primary.input']!, value: 1.0395 }
+    const mini = {
+      ...cadMeter('5.4 mini Inp Gl 1M Tokens', 'Azure OpenAI GPT5', '5.4 mini Inp Gl', 1.0395, '1M'),
+      armRegionName: 'eastus', type: 'Consumption',
+    }
+    const client: RateLookupClient = { query: async () => [inputMeter(), mini, { ...mini, retailPrice: 2 }] }
+    const outcome = await executeRateSync(new RecordingRepository(current), client, new Date('2026-09-07T10:00:00Z'))
+    expect(outcome.rateCard.rates[key]).toMatchObject({ value: 1.0395, verification: { status: 'ambiguous' } })
+    expect(outcome.matchedKeys).not.toContain(key)
+  })
+
+  it('rejects conflicting current meters regardless of response order', async () => {
+    const current = structuredClone(fallbackRateCard)
+    const output = cadMeter('gpt 4o 1120 Outp glbl Tokens', 'Azure OpenAI', 'gpt 4o 1120 Outp glbl', 0.01, '1K')
+    for (const inputs of [[inputMeter(0.003), inputMeter(0.009)], [inputMeter(0.009), inputMeter(0.003)]]) {
+      const repository = new RecordingRepository(current)
+      const client: RateLookupClient = { query: async () => [...inputs, output] }
+      const outcome = await executeRateSync(repository, client, new Date('2026-09-06T10:00:00Z'))
+
+      expect(outcome.matchedKeys).not.toContain('model.primary.input')
+      expect(outcome.rateCard.unmatchedKeys).toContain('model.primary.input')
+      expect(outcome.rateCard.rates['model.primary.input']).toMatchObject({
+        value: current.rates['model.primary.input']!.value,
+        asOf: current.rates['model.primary.input']!.asOf,
+        verification: {
+          status: 'ambiguous',
+          checkedAt: '2026-09-06T10:00:00.000Z',
+        },
+      })
+    }
+  })
+
+  it('accepts identical duplicates and records the verification time', async () => {
+    const client: RateLookupClient = { query: async () => [inputMeter(), inputMeter()] }
+    const outcome = await executeRateSync(new RecordingRepository(), client, new Date('2026-09-06T10:00:00Z'))
+
+    expect(outcome.rateCard.rates['model.primary.input']).toMatchObject({
+      value: 3,
+      asOf: '2026-09-06',
+      verification: { status: 'verified', checkedAt: '2026-09-06T10:00:00.000Z' },
+    })
+  })
+
+  it.each([
+    { unitOfMeasure: '1M' },
+    { tierMinimumUnits: 1000 },
+    { meterId: 'another-meter' },
+    { skuName: 'another-sku' },
+    { type: 'Reservation' },
+  ])('rejects conflicting billing identities even at the same price: %j', async (difference) => {
+    const client: RateLookupClient = { query: async () => [inputMeter(), { ...inputMeter(), ...difference }] }
+    const repository = new RecordingRepository()
+
+    await expect(executeRateSync(repository, client, new Date('2026-09-06T10:00:00Z'))).rejects.toBeInstanceOf(ZeroMeterMatchError)
+    expect(repository.events).toEqual(['read'])
+  })
+
+  it('keeps primary-region and latest-effective-date precedence', async () => {
+    const client: RateLookupClient = { query: async () => [
+      inputMeter(0.009),
+      { ...inputMeter(0.004), effectiveStartDate: '2026-08-01T00:00:00Z' },
+      { ...inputMeter(0.006), effectiveStartDate: '2026-09-01T00:00:00Z', isPrimaryMeterRegion: false },
+      { ...inputMeter(0.008), effectiveStartDate: '2026-10-01T00:00:00Z' },
+    ] }
+    const outcome = await executeRateSync(new RecordingRepository(), client, new Date('2026-09-06T10:00:00Z'))
+
+    expect(outcome.rateCard.rates['model.primary.input']?.value).toBe(4)
+  })
+
+  it('preserves last-known values and dates while recording an unmatched refresh', async () => {
+    const current = structuredClone(fallbackRateCard)
+    const previousOutput = structuredClone(current.rates['model.primary.output']!)
+    const client: RateLookupClient = { query: async () => [inputMeter()] }
+    const outcome = await executeRateSync(new RecordingRepository(current), client, new Date('2026-09-06T10:00:00Z'))
+
+    expect(outcome.rateCard.asOf).toBe('2026-09-06')
+    expect(outcome.rateCard.rates['model.primary.output']).toMatchObject({
+      ...previousOutput,
+      verification: {
+        status: 'unmatched',
+        checkedAt: '2026-09-06T10:00:00.000Z',
+        reason: 'No current matching Retail meter was returned.',
+      },
+    })
+    expect(current.rates['model.primary.output']).toEqual(previousOutput)
+    expect(outcome.rateCard.rates['change.finops.hour']).toEqual(current.rates['change.finops.hour'])
+  })
+
+  it('keeps ambiguity unpriced without a previous rate and recovers on a later match', async () => {
+    const current = structuredClone(fallbackRateCard)
+    current.rates['model.primary.input']!.value = null
+    const output = cadMeter('gpt 4o 1120 Outp glbl Tokens', 'Azure OpenAI', 'gpt 4o 1120 Outp glbl', 0.01, '1K')
+    const ambiguous: RateLookupClient = { query: async () => [inputMeter(0.003), inputMeter(0.009), output] }
+    const partial = await executeRateSync(new RecordingRepository(current), ambiguous, new Date('2026-09-06T10:00:00Z'))
+    expect(partial.rateCard.rates['model.primary.input']).toMatchObject({ value: null, verification: { status: 'ambiguous' } })
+
+    const verified: RateLookupClient = { query: async () => [inputMeter(0.005), output] }
+    const recovered = await executeRateSync(new RecordingRepository(partial.rateCard), verified, new Date('2026-09-07T10:00:00Z'))
+    expect(recovered.rateCard.rates['model.primary.input']).toMatchObject({
+      value: 5,
+      asOf: '2026-09-07',
+      verification: { status: 'verified', checkedAt: '2026-09-07T10:00:00.000Z' },
+    })
+    expect(recovered.rateCard.rates['model.primary.input']?.verification?.reason).toBeUndefined()
+    expect(recovered.rateCard.unmatchedKeys).not.toContain('model.primary.input')
   })
 
   it('aborts without writes when zero meters match', async () => {

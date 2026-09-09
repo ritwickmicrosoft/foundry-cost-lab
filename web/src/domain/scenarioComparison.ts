@@ -1,4 +1,5 @@
 import { REGION_LABELS, type CostConfig, type CostLine, type CostResult, type CostTier, type RateCard } from './types'
+import { getLastKnownRateLines, getPricingCoverageSummary } from './pricingVerification'
 
 export const MAX_COMPARISON_SCENARIOS = 3
 export const COMPARISON_KEYS = ['A', 'B', 'C'] as const
@@ -35,6 +36,8 @@ export interface ComparisonScenarioSummary {
   costPerThousandTurns: number | null
   complete: boolean
   unpricedLineCount: number
+  lastKnownLineCount: number
+  pricingCoverage: string
   securityControlCount: number
   privateNetworking: boolean
   disasterRecovery: boolean
@@ -150,6 +153,8 @@ export function buildScenarioComparison(
       costPerThousandTurns: monthlyTurns > 0 ? source.result.knownGrandTotal / monthlyTurns * 1000 : null,
       complete: source.result.complete,
       unpricedLineCount: source.result.lines.filter((line) => line.amount === null).length,
+      lastKnownLineCount: getLastKnownRateLines(source.result).length,
+      pricingCoverage: getPricingCoverageSummary(source.result),
       securityControlCount: securityControlCount(source.config),
       privateNetworking: source.config.platform.privateEndpoints.enabled || source.config.networking.privateLinkData.enabled,
       disasterRecovery: source.config.disasterRecovery.enabled,
@@ -199,7 +204,9 @@ export function buildScenarioComparison(
       id: `scenario:${summary.key}:coverage`,
       category: 'coverage' as const,
       scenarioKeys: [summary.key],
-      text: summary.complete
+      text: summary.lastKnownLineCount > 0
+        ? `Scenario ${summary.key} pricing coverage: ${summary.pricingCoverage}. Last-known prices are included but were not verified by the latest refresh.`
+        : summary.complete
         ? `Scenario ${summary.key} has all active cost lines priced.`
         : `Scenario ${summary.key} has ${summary.unpricedLineCount} active unpriced cost lines.`,
     },

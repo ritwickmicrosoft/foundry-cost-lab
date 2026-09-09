@@ -1,6 +1,7 @@
-import { Check, MessageCircle, Pencil, RotateCcw, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Check, ChevronDown, MessageCircle, Pencil, RotateCcw, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { computeCost } from '../domain/computeCost'
+import { getLastKnownRateLines, getPricingCoverageSummary } from '../domain/pricingVerification'
 import {
   buildGuidedConfig,
   applyGuidedConsiderations,
@@ -20,7 +21,7 @@ import { REGION_IDS, REGION_LABELS, type CostConfig, type ModelPortfolioStrategy
 import { formatMoney, formatNumber } from '../utils/format'
 import { NumberField } from './Controls'
 
-export const GUIDED_ESTIMATE_STORAGE_KEY = 'foundry-cost-lab-guided-estimate-v1'
+export { GUIDED_ESTIMATE_STORAGE_KEY } from '../state/workspaceStorage'
 
 type GuidedStep = 'use-case' | 'posture' | 'region' | 'scale' | 'hosting' | 'capacity' | 'model-strategy' | 'requirements' | 'considerations' | 'review'
 
@@ -28,6 +29,8 @@ interface GuidedEstimateProps {
   currentConfig: CostConfig
   rateCard: RateCard
   catalog: ActiveFoundryCatalog
+  loading: boolean
+  onDraftChange: (config: CostConfig | null) => void
   onApply: (config: CostConfig) => void
   onSkip: () => void
 }
@@ -75,6 +78,22 @@ const REQUIREMENTS: Array<{ value: GuidedRequirement; label: string; detail: str
   { value: 'disaster-recovery', label: 'Disaster recovery', detail: 'Secondary service capacity' },
   { value: 'content-safety', label: 'Content safety', detail: 'Standalone moderation records' },
   { value: 'api-management', label: 'API gateway', detail: 'API Management capacity' },
+]
+
+const WORKLOAD_FIELDS: Array<{
+  key: keyof CostConfig['workload']
+  label: string
+  min: number
+  max?: number
+  suffix?: string
+}> = [
+  { key: 'monthlyUsers', label: 'Monthly users', min: 0, max: 1_000_000 },
+  { key: 'activeDaysPerMonth', label: 'Active days / month', min: 1, max: 31 },
+  { key: 'requestsPerUserPerDay', label: 'Requests / user / day', min: 0 },
+  { key: 'agentTurnMultiplier', label: 'Turns / request', min: 1, max: 12 },
+  { key: 'inputTokensPerTurn', label: 'Input / turn', min: 0, suffix: 'tokens' },
+  { key: 'outputTokensPerTurn', label: 'Output / turn', min: 0, suffix: 'tokens' },
+  { key: 'mcpSchemaTokensPerTurn', label: 'MCP schema / turn', min: 0, suffix: 'tokens' },
 ]
 
 const stepOrder = (answers: GuidedEstimateAnswers): GuidedStep[] => [
@@ -132,7 +151,7 @@ function ChoiceGrid<T extends string>({
   onSelect,
 }: {
   options: Array<{ value: T; label: string; detail: string }>
-  value: T
+  value: T | null
   onSelect: (value: T) => void
 }) {
   return (
@@ -153,13 +172,15 @@ function ChoiceGrid<T extends string>({
   )
 }
 
-export function GuidedEstimate({ currentConfig, rateCard, catalog, onApply, onSkip }: GuidedEstimateProps) {
+export function GuidedEstimate({ currentConfig, rateCard, catalog, loading, onDraftChange, onApply, onSkip }: GuidedEstimateProps) {
   const [answers, setAnswers] = useState<GuidedEstimateAnswers>(() => ({
     ...DEFAULT_GUIDED_ANSWERS,
     region: currentConfig.region,
   }))
   const [step, setStep] = useState<GuidedStep>('use-case')
+  const [hasStarted, setHasStarted] = useState(false)
   const [considerationSuggestions, setConsiderationSuggestions] = useState<GuidedConsiderationSuggestion[]>([])
+  const [workloadEdits, setWorkloadEdits] = useState<Partial<CostConfig['workload']>>({})
   const steps = stepOrder(answers)
   const stepIndex = steps.indexOf(step)
   const completedSteps = steps.slice(0, Math.max(0, stepIndex)).filter((candidate) => candidate !== 'review')
@@ -168,12 +189,20 @@ export function GuidedEstimate({ currentConfig, rateCard, catalog, onApply, onSk
     [answers, considerationSuggestions],
   )
   const draftConfig = useMemo(
-    () => buildGuidedConfig(effectiveAnswers, catalog.models, currentConfig.periodStart),
-    [effectiveAnswers, catalog.models, currentConfig.periodStart],
+    () => {
+      const draft = buildGuidedConfig(effectiveAnswers, catalog.models, currentConfig.periodStart)
+      Object.assign(draft.workload, workloadEdits)
+      return draft
+    },
+    [effectiveAnswers, catalog.models, currentConfig.periodStart, workloadEdits],
   )
+  useEffect(() => {
+    onDraftChange(hasStarted ? draftConfig : null)
+  }, [draftConfig, hasStarted, onDraftChange])
+  const dataReady = hasStarted && !loading && rateCard.region === draftConfig.region && catalog.region === draftConfig.region
   const draftResult = useMemo(
-    () => computeCost(draftConfig, rateCard, catalog.models),
-    [catalog.models, draftConfig, rateCard],
+    () => dataReady ? computeCost(draftConfig, rateCard, catalog.models) : null,
+    [catalog.models, dataReady, draftConfig, rateCard],
   )
   const portfolioDeployments = new Map([
     ['primary', draftConfig.commercialModel],
@@ -194,7 +223,7 @@ export function GuidedEstimate({ currentConfig, rateCard, catalog, onApply, onSk
     model.billingBasis === 'managed-compute' ? 'Dedicated endpoint' : 'Pay per use',
   ))
   const portfolioHosting = hostingMethods.size > 1 ? 'Mixed hosting' : [...hostingMethods][0] ?? optionLabel(HOSTING, answers.hosting)
-  const activeUnpriced = draftResult.lines.filter((line) => line.amount === null).length
+  const pricingCurrent = draftResult !== null && draftResult.complete && getLastKnownRateLines(draftResult).length === 0
 
   const updateAnswers = (change: Partial<GuidedEstimateAnswers>) => {
     setAnswers((current) => ({ ...current, ...change }))
@@ -206,8 +235,10 @@ export function GuidedEstimate({ currentConfig, rateCard, catalog, onApply, onSk
   }
 
   const reset = () => {
+    setHasStarted(false)
     setAnswers({ ...DEFAULT_GUIDED_ANSWERS, region: currentConfig.region })
     setConsiderationSuggestions([])
+    setWorkloadEdits({})
     setStep('use-case')
   }
 
@@ -229,12 +260,26 @@ export function GuidedEstimate({ currentConfig, rateCard, catalog, onApply, onSk
     setConsiderationSuggestions((current) => current.filter((suggestion) => suggestion.field !== field))
   }
 
+  const exchanges = completedSteps.map((completedStep) => (
+    <div className="guide-exchange" key={completedStep}>
+      <div className="guide-message guide-message--assistant">
+        <MessageCircle aria-hidden="true" /><span>{questionFor(completedStep)}</span>
+      </div>
+      <div className="guide-message guide-message--answer">
+        <span>{answerFor(completedStep, answers)}</span>
+        <button type="button" aria-label={`Edit ${questionFor(completedStep)}`} onClick={() => setStep(completedStep)}>
+          <Pencil aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  ))
+
   return (
-    <section className="guided-estimate" aria-labelledby="guided-estimate-title">
+    <section className={`guided-estimate${hasStarted ? '' : ' guided-estimate--unstarted'}`} aria-labelledby="guided-estimate-title">
       <header className="guided-estimate__header">
         <div>
           <span className="eyebrow">Guided estimate</span>
-          <h2 id="guided-estimate-title">Build a cost scenario</h2>
+          <h2 id="guided-estimate-title" tabIndex={-1}>Build a cost scenario</h2>
           <p>Answer a few planning questions, then review every assumption before applying it.</p>
         </div>
         <button type="button" className="button button--quiet" onClick={onSkip}>Skip to calculator</button>
@@ -254,19 +299,9 @@ export function GuidedEstimate({ currentConfig, rateCard, catalog, onApply, onSk
           </div>
 
           <div className="guide-transcript" role="log" aria-live="polite">
-            {completedSteps.map((completedStep) => (
-              <div className="guide-exchange" key={completedStep}>
-                <div className="guide-message guide-message--assistant">
-                  <MessageCircle aria-hidden="true" /><span>{questionFor(completedStep)}</span>
-                </div>
-                <div className="guide-message guide-message--answer">
-                  <span>{answerFor(completedStep, answers)}</span>
-                  <button type="button" aria-label={`Edit ${questionFor(completedStep)}`} onClick={() => setStep(completedStep)}>
-                    <Pencil aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
-            ))}
+            {step === 'review' ? (
+              <details className="result-disclosure"><summary>Setup selections<ChevronDown aria-hidden="true" /></summary>{exchanges}</details>
+            ) : exchanges}
 
             <div className="guide-message guide-message--assistant guide-message--current">
               <MessageCircle aria-hidden="true" />
@@ -275,7 +310,10 @@ export function GuidedEstimate({ currentConfig, rateCard, catalog, onApply, onSk
           </div>
 
           <div className="guide-response" aria-label={questionFor(step)}>
-            {step === 'use-case' ? <ChoiceGrid options={USE_CASES} value={answers.useCase} onSelect={(useCase) => advance('posture', { useCase })} /> : null}
+            {step === 'use-case' ? <ChoiceGrid options={USE_CASES} value={hasStarted ? answers.useCase : null} onSelect={(useCase) => {
+              setHasStarted(true)
+              advance('posture', { useCase })
+            }} /> : null}
             {step === 'posture' ? <ChoiceGrid options={POSTURES} value={answers.posture} onSelect={(posture) => advance('region', { posture, instances: posture === 'production' ? 2 : 1 })} /> : null}
             {step === 'region' ? (
               <div className="guide-choice-grid">
@@ -337,6 +375,20 @@ export function GuidedEstimate({ currentConfig, rateCard, catalog, onApply, onSk
             ) : null}
             {step === 'review' ? (
               <div className="guide-review">
+                <section className="guide-assumptions" aria-labelledby="guide-assumptions-title">
+                  <div className="guide-assumptions__heading">
+                    <h3 id="guide-assumptions-title">Workload assumptions</h3>
+                    <button type="button" className="button button--quiet" disabled={Object.keys(workloadEdits).length === 0} onClick={() => setWorkloadEdits({})}><RotateCcw aria-hidden="true" />Reset edits</button>
+                  </div>
+                  <div className="field-grid">
+                    {WORKLOAD_FIELDS.map((field) => (
+                      <NumberField key={field.key} label={field.label} value={draftConfig.workload[field.key]} min={field.min} max={field.max} suffix={field.suffix}
+                        hint={field.key in workloadEdits ? 'Edited' : field.key === 'monthlyUsers' && effectiveAnswers.monthlyUsersOverride !== null ? 'From note' : 'Preset'}
+                        onChange={(value) => setWorkloadEdits((current) => ({ ...current, [field.key]: Math.min(field.max ?? Number.MAX_SAFE_INTEGER, Math.max(field.min, value ?? field.min)) }))}
+                      />
+                    ))}
+                  </div>
+                </section>
                 {answers.considerations.trim() ? (
                   <section className="guide-consideration-review" aria-labelledby="consideration-review-title">
                     <div>
@@ -359,7 +411,7 @@ export function GuidedEstimate({ currentConfig, rateCard, catalog, onApply, onSk
                   </section>
                 ) : null}
                 <div className="guide-review-actions">
-                  <button type="button" className="button button--primary" onClick={() => onApply(draftConfig)}>Apply estimate</button>
+                  <button type="button" className="button button--primary" disabled={!dataReady} onClick={() => { if (dataReady) onApply(draftConfig) }}>Apply estimate</button>
                   <button type="button" className="button button--quiet" onClick={() => setStep('considerations')}>Back</button>
                   <button type="button" className="button button--quiet" onClick={reset}><RotateCcw aria-hidden="true" />Start over</button>
                 </div>
@@ -368,9 +420,9 @@ export function GuidedEstimate({ currentConfig, rateCard, catalog, onApply, onSk
           </div>
         </div>
 
-        <aside className="guide-preview" aria-label="Draft estimate" aria-live="polite">
+        {hasStarted ? <aside className="guide-preview" aria-label="Draft estimate" aria-live="polite" aria-busy={!dataReady}>
           <span className="eyebrow">Draft estimate</span>
-          <strong className="guide-preview__total">{formatMoney(draftResult.knownGrandTotal)}</strong>
+          <strong className="guide-preview__total">{draftResult ? formatMoney(draftResult.knownGrandTotal) : 'Pending'}</strong>
           <span className="guide-preview__period">known monthly subtotal</span>
           <dl>
             <div><dt>Stage</dt><dd>{effectiveAnswers.posture === 'production' ? 'Production' : 'Pilot'}</dd></div>
@@ -387,12 +439,12 @@ export function GuidedEstimate({ currentConfig, rateCard, catalog, onApply, onSk
               </div>
             ))}
           </div>
-          <div className={`guide-preview__status${draftResult.complete ? ' guide-preview__status--complete' : ''}`}>
-            <strong>{draftResult.complete ? 'Pricing complete' : `${activeUnpriced} unpriced ${activeUnpriced === 1 ? 'item' : 'items'}`}</strong>
-            <span>{draftResult.complete ? 'All active lines have a rate.' : 'Unknown costs are excluded from the subtotal.'}</span>
+          <div className={`guide-preview__status${pricingCurrent ? ' guide-preview__status--complete' : ''}`}>
+            <strong>{!draftResult ? `Loading ${REGION_LABELS[effectiveAnswers.region]} rates and catalog` : pricingCurrent ? 'Pricing complete' : getPricingCoverageSummary(draftResult)}</strong>
+            <span>{!draftResult ? 'The estimate is pending regional data.' : pricingCurrent ? 'All active lines have a rate.' : 'Unpriced costs are excluded; last-known prices remain included pending verification.'}</span>
           </div>
           <small>Planning estimate only. You can edit every input in the calculator after applying.</small>
-        </aside>
+        </aside> : null}
       </div>
     </section>
   )

@@ -220,7 +220,10 @@ export function ModelCatalogConfigurator({ config, catalog, update }: ModelCatal
             onClick={() => changeHostingMethod('pay-per-use')}
           >
             <Cloud aria-hidden="true" />
-            <span><strong>Pay per use</strong><small>Usage-based billing</small></span>
+            <span>
+              <strong>{hostingMethod === 'pay-per-use' && config.purchaseMode === 'ptu' ? 'Provisioned API' : 'Pay per use'}</strong>
+              <small>{hostingMethod === 'pay-per-use' && config.purchaseMode === 'ptu' ? 'PTU-hour billing' : 'Usage-based billing'}</small>
+            </span>
           </button>
           <button
             type="button"

@@ -8,6 +8,12 @@ export function isRegionId(value: string): value is RegionId {
 export type RateMaintenance = 'synced' | 'manual'
 export type ModelSourceId = 'direct-azure' | 'foundry-labs' | 'hugging-face' | 'fireworks'
 
+export interface RateVerification {
+  status: 'verified' | 'unmatched' | 'ambiguous'
+  checkedAt: string
+  reason?: string
+}
+
 export interface Rate {
   value: number | null
   unit: string
@@ -19,6 +25,7 @@ export interface Rate {
   lastReviewed?: string
   unavailableReason?: string
   tierMinimumUnits?: number
+  verification?: RateVerification
 }
 
 export interface RateCard {

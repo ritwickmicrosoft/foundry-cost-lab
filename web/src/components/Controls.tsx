@@ -1,6 +1,6 @@
 import * as Slider from '@radix-ui/react-slider'
 import * as Switch from '@radix-ui/react-switch'
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 
 interface NumberFieldProps {
   label: string
@@ -23,12 +23,16 @@ export function NumberField({
   suffix,
   hint,
 }: NumberFieldProps) {
+  const fieldId = useId()
+  const descriptionIds = [suffix ? `${fieldId}-unit` : '', hint ? `${fieldId}-hint` : ''].filter(Boolean).join(' ')
   return (
     <label className="field">
-      <span className="field__label">{label}</span>
+      <span className="field__label" id={`${fieldId}-label`}>{label}</span>
       <span className="field__control">
         <input
           type="number"
+          aria-labelledby={`${fieldId}-label`}
+          aria-describedby={descriptionIds || undefined}
           value={value ?? ''}
           min={min}
           max={max}
@@ -37,9 +41,9 @@ export function NumberField({
             onChange(event.target.value === '' ? null : Number(event.target.value))
           }
         />
-        {suffix ? <span className="field__suffix">{suffix}</span> : null}
+        {suffix ? <span className="field__suffix" id={`${fieldId}-unit`}>{suffix}</span> : null}
       </span>
-      {hint ? <span className="field__hint">{hint}</span> : null}
+      {hint ? <span className="field__hint" id={`${fieldId}-hint`}>{hint}</span> : null}
     </label>
   )
 }
@@ -160,9 +164,9 @@ export function SegmentedControl<T extends string>({
   )
 }
 
-export function ConfigGroup({ title, children }: { title: string; children: ReactNode }) {
+export function ConfigGroup({ title, children, blockIds }: { title: string; children: ReactNode; blockIds?: string[] }) {
   return (
-    <section className="config-group">
+    <section className="config-group" aria-label={title} tabIndex={-1} data-cost-block={blockIds?.join(' ')}>
       <h2>{title}</h2>
       {children}
     </section>

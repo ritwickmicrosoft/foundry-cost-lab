@@ -147,6 +147,12 @@ The Azure extension context is signed into a different tenant, so deployment and
 
 ## Production Deployment Evidence
 
+- GPT-5.4-mini pricing update deployed September 7, 2026 using `azd deploy api --no-prompt --environment prod`; API publishing succeeded in 1m34s. No web deployment or infrastructure apply was performed.
+- A secured ARM host-admin invocation with structured JSON `{ "input": "{}" }` returned HTTP 202. `MORNING_SYNC_SUCCESS` at `2026-09-07T06:31:58Z` confirmed all four regional rate and catalog snapshots refreshed from `2026-09-07T06:31:25.236Z`.
+- Refreshed rate match/unmatched counts: Canada Central 55/27, Canada East 52/30, East US 58/24, East US 2 57/25. The stricter identity checks retain ambiguous existing prices as last-known; these counts do not claim full coverage. GPT-5.4-mini Global Standard remains unpriced for Canada Central.
+- Post-refresh health reported all eight current snapshots fresh and healthy. `FORCE_RATE_SYNC` was removed and its absence verified; `syncRates` remains enabled with monitored hourly UTC ticks, `runOnStartup=false`, and its unchanged 06:00 America/Toronto gate.
+- Post-deployment RBAC still gives managed identity `82cef8db-5006-489e-830f-3d2b3331ef49` Storage Blob Data Owner only at the existing storage account. Anonymous root, `/api/rates`, and `/api/catalog` still return managed-Entra sign-in redirects. Interactive signed-in UI verification was not performed.
+- Published build hashes: `meterSpecs.js` SHA-256 `00b1c62fdf11dc4f5be944301a8bc05036690d96fab22ae7bd0d07b394e81e8e`; `rateSync.js` SHA-256 `2a0820481a419199e736a469fbd4f494a843bd6840efa8ef722db834133daa9a`.
 - Deployment date: 2026-08-21
 - Pricing-matrix update: deployed 2026-08-21 Toronto time (`2026-08-22` UTC) with model/SKU profiles and agent-tool, RAG, observability, networking, and service-specific DR blocks
 - Four-region update: deployed `2026-08-23` UTC with independent Canada Central, Canada East, East US, and East US 2 pricing cards and Foundry catalogs
@@ -194,6 +200,34 @@ The Azure extension context is signed into a different tenant, so deployment and
 - Live RBAC: managed identity `82cef8db-5006-489e-830f-3d2b3331ef49` retains Storage Blob Data Owner, Monitoring Metrics Publisher, and the custom catalog-only subscription role at their intended scopes
 
 ## Section 7: Validation Proof
+
+### September 8, 2026 web and API release
+
+- User confirmed GitHub `main` publication and code-only deployment of both existing prod services in `Ritwick - Demo` (`1d53bfb3-a84c-4eb4-8c79-f29dc8424b6a`), `rg-foundry-cost-prod`, East US 2. Infrastructure apply, stored-scenario changes, and authentication changes are excluded.
+- Release includes the accumulated pricing verification and GPT-5.4-mini mappings, region-consistent guided drafts, explicit empty guide/reset states, mobile Configure/Results workspace, editable assumptions, undo/redo, optional Sentinel consumption, and stage-only calculator selection.
+- Dependency release gates found new advisories in sharp, fast-uri, and Vitest. Targeted compatible updates to sharp 0.35.4 or later, fast-uri, and Vitest/coverage 5.0.0-rc.4 resolved all findings without forced upgrades. Web and API audits now report zero vulnerabilities.
+- `npm --prefix web test`: 117 passed; `npm --prefix api test`: 83 passed. Frontend lint, API compilation, and production frontend build passed. The existing main-chunk size advisory remains non-blocking.
+- `npm --prefix web run test:e2e`: 48 passed. `npm --prefix web run test:pwa`: production build and all three device profiles passed, including network-only navigation/API/auth and static-only caching.
+- Azure MCP stable-schema validation passed. Auth check passed as the current operator; environment identifiers match the approved prod subscription/location. Resource Graph found exactly one API and one web target in the existing group.
+- `azd provision --preview --no-prompt --environment prod`: passed, read-only; no creates/deletes or replacements proposed. No infrastructure changes will be applied. Effective policy assignments retrieved and reviewed; no new services, identities, or permissions are required.
+- `azd package --no-prompt --environment prod`: both API and web passed. Docker, Aspire and container-image permission checks do not apply.
+- Static role review confirms the catalog-only subscription read role and scoped Storage Blob Data Owner assignment continue to cover the unchanged backend operations.
+- GitHub deployment workflow is manual-dispatch only; pushing main triggers CI, not a second Azure deployment. Release will use azd code deployment to the existing services.
+
+### September 7, 2026 API-only pricing update
+
+- User confirmed deployment to the existing `prod` Function App in `Ritwick - Demo` (`1d53bfb3-a84c-4eb4-8c79-f29dc8424b6a`), `rg-foundry-cost-prod`, East US 2. No infrastructure or frontend deployment is included.
+- Change scope: GPT-5.4-mini `2026-03-17` Global Standard input/cached-input/output mappings, explicit 1M normalization, region/SKU isolation, and the previously tested API verification safeguards.
+- `azd version`, `azd env list`, safe environment identifier inspection, and `azd auth login --check-status` passed with the existing prod environment and authenticated operator.
+- Azure MCP `validate_azure_yaml` passed against the stable schema. Resource Graph confirmed exactly one API service target and the existing resource-group location.
+- `azd provision --preview --no-prompt --environment prod` passed. This was read-only; no infrastructure changes will be applied. Effective policy assignments were retrieved and reviewed; keyless deployment and private Storage remain unchanged.
+- `npm --prefix api test`: 83 passing tests, including 38 focused meter/sync cases. `npm --prefix api run lint` and API compilation passed. `npm --prefix api audit --audit-level=high`: zero vulnerabilities.
+- `npm --prefix web test -- src/domain/pricingReadiness.test.ts`: nine passing tests, including the exact model/version/SKU contract. Frontend shipping and packaging are outside this API-only release.
+- `azd package api --no-prompt --environment prod` passed. No Docker or Aspire services apply to this release.
+- Live runtime remains Running with user-assigned managed identity and UserAssignedIdentity deployment storage; scoped Storage Blob Data Owner assignment verified. Timer binding is monitored, hourly UTC, not run-on-startup; no disabled or forced-sync setting is present.
+- Local live sync verified the new prices in Canada East and explicit unpriced state in Canada Central. The broad local run stalled before completing US regions and was stopped; original US snapshots were preserved pending a later refresh.
+- A bounded in-memory run through `RetailPricesClient` and `buildSyncedRateCard` then verified all three mappings in Canada East, East US, and East US 2 on September 7: CAD 1.0395 input, 0.104 cached input, and 6.2372 output per million tokens. These checks did not write partial model-only rate cards.
+- Static RBAC review confirmed the existing catalog-only subscription role and Storage Blob Data Owner assignment match the unchanged catalog-read and snapshot-write operations. No role assignments are added or changed by this release.
 
 Validation refreshed: `2026-08-31 10:29:00 -04:00`.
 

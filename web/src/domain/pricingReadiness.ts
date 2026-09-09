@@ -5,9 +5,10 @@ import {
   type FoundryModelCatalogEntry,
 } from './foundryCatalog'
 import { findModelPriceProfile } from './modelPriceProfiles'
+import { getLastKnownRateLines, getRateVerification } from './pricingVerification'
 import { REGION_LABELS, type CommercialModelConfig, type CostConfig, type CostLine, type CostResult, type RateCard } from './types'
 
-export type PricingCoverageStatus = 'exact' | 'manual' | 'mixed' | 'unpriced' | 'inactive'
+export type PricingCoverageStatus = 'exact' | 'manual' | 'mixed' | 'last-known' | 'unpriced' | 'inactive'
 
 export interface ModelPriceDimension {
   id: string
@@ -19,6 +20,7 @@ export interface ModelPriceDimension {
   asOf: string
   required: boolean
   origin: 'rate-card' | 'profile' | 'none'
+  verificationReason?: string
 }
 
 export interface PricingBlockReadiness {
@@ -57,6 +59,7 @@ export function processingBoundary(config: CostConfig) {
 function coverageStatus(lines: CostLine[], active: boolean): PricingCoverageStatus {
   if (!active || lines.length === 0) return 'inactive'
   if (lines.some((line) => line.amount === null)) return 'unpriced'
+  if (getLastKnownRateLines({ lines }).length > 0) return 'last-known'
   const maintenance = new Set(lines.map((line) => line.provenance.maintenance))
   if (maintenance.size > 1) return 'mixed'
   return maintenance.has('synced') ? 'exact' : 'manual'
@@ -94,17 +97,20 @@ export function buildPricingReadiness(
       required = true,
     ): ModelPriceDimension => {
       const rate = rateCard.rates[rateKey]
+      const verification = getRateVerification(rateCard, rateKey)
       if (rate?.value !== null && rate?.value !== undefined) {
         return {
           id: entry.label ? `${entry.id}:${id}` : id,
           label: prefixedLabel(label),
           value: rate.value,
           unit: rate.unit,
-          status: rate.maintenance === 'synced' ? 'exact' : 'manual',
+          status: rate.maintenance !== 'synced' ? 'manual'
+            : verification && verification.status !== 'verified' ? 'last-known' : 'exact',
           source: rate.source,
           asOf: rate.asOf,
           required,
           origin: 'rate-card',
+          verificationReason: verification?.reason,
         }
       }
       if (profileValue !== null) {
@@ -126,7 +132,7 @@ export function buildPricingReadiness(
         value: null,
         unit: rate?.unit ?? fallbackUnit,
         status: 'unpriced',
-        source: rate?.unavailableReason ?? 'No exact rate or matching profile',
+        source: verification?.reason ?? rate?.unavailableReason ?? 'No exact rate or matching profile',
         asOf: rate?.asOf ?? rateCard.asOf,
         required,
         origin: 'none',
@@ -169,6 +175,8 @@ export function buildPricingReadiness(
     ? 'inactive'
     : requiredDimensions.some((entry) => entry.status === 'unpriced')
       ? 'unpriced'
+      : requiredDimensions.some((entry) => entry.status === 'last-known')
+        ? 'last-known'
       : dimensionStatuses.size > 1
         ? 'mixed'
         : (requiredDimensions[0]?.status ?? 'inactive')
@@ -206,6 +214,7 @@ export function buildPricingReadiness(
   const decisionBlockers = requiredDimensions
     .filter((entry) => entry.status === 'unpriced')
     .map((entry) => `${entry.label} rate`)
+  decisionBlockers.push(...getLastKnownRateLines(result).map((line) => `${line.label}: verify last-known rate`))
   for (const entry of modelEntries) {
     if (entry.model.purchaseMode === 'ptu' && entry.model.ptuCapacityTokensPerUnitMonth === null) {
       decisionBlockers.push(`${entry.label ? `${entry.label} ` : ''}PTU token capacity per unit`)

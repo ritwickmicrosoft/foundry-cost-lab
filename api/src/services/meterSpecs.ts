@@ -9,7 +9,7 @@ export interface NormalizedMeter {
 export interface MeterSpec {
   key: string
   filter: (region: RegionId) => string
-  matches: (item: RetailPriceItem) => boolean
+  matches: (item: RetailPriceItem, region: RegionId) => boolean
   normalize: (item: RetailPriceItem) => NormalizedMeter | null
 }
 
@@ -42,6 +42,9 @@ const perMillionTokens = (item: RetailPriceItem): NormalizedMeter | null => {
   if (item.unitOfMeasure.toLocaleLowerCase() === '1k') {
     return { value: item.retailPrice * 1_000, unit: 'CAD/million tokens' }
   }
+  if (item.unitOfMeasure.toLocaleLowerCase() === '1m') {
+    return { value: item.retailPrice, unit: 'CAD/million tokens' }
+  }
   return null
 }
 
@@ -51,6 +54,22 @@ const contentSafetyRegion = (region: RegionId): RegionId =>
 const networkEgressTiers = [0, 100, 10_335, 51_295, 153_695, 512_095] as const
 
 export const meterSpecs: MeterSpec[] = [
+  ...([
+    ['input', 'Inp'],
+    ['cachedInput', 'cd Inp'],
+    ['output', 'Opt'],
+  ] as const).map(([dimension, meterDimension]): MeterSpec => ({
+    key: `model.catalog.direct-azure-gpt-5-4-mini-2026-03-17.global-standard.${dimension}`,
+    filter: (region) => `${regionAndProduct(region, 'Azure OpenAI GPT5')} and priceType eq 'Consumption'`,
+    matches: (item, region) =>
+      item.armRegionName === region &&
+      item.productName === 'Azure OpenAI GPT5' &&
+      item.type === 'Consumption' &&
+      item.unitOfMeasure === '1M' &&
+      item.tierMinimumUnits === 0 &&
+      exactSkuMeter(`5.4 mini ${meterDimension} Gl 1M Tokens`, `5.4 mini ${meterDimension} Gl`)(item),
+    normalize: perMillionTokens,
+  })),
   {
     key: 'model.primary.input',
     filter: openAiFilter,

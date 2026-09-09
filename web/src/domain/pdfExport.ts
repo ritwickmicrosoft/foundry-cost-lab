@@ -1,4 +1,5 @@
 import type { jsPDF as JsPdf } from 'jspdf'
+import { getLastKnownRateLines, getPricingCoverageSummary, usesLastKnownRate } from './pricingVerification'
 import {
   COST_TIERS,
   REGION_LABELS,
@@ -99,9 +100,10 @@ export async function createCostEstimatePdf({
     scenarioName?.trim() || `${config.posture === 'production' ? 'Production' : 'Lean POC'} scenario`,
   )
   const unpricedLines = result.lines.filter((line) => line.amount === null)
-  const estimateStatus = result.complete
+  const pricingCurrent = result.complete && getLastKnownRateLines(result).length === 0
+  const estimateStatus = pricingCurrent
     ? 'Complete estimate - all active lines priced'
-    : `Known subtotal - ${unpricedLines.length} active line${unpricedLines.length === 1 ? '' : 's'} excluded as unpriced`
+    : `Known subtotal - ${getPricingCoverageSummary(result)}`
 
   document.setProperties({
     title: `Foundry Cost Lab - ${reportName}`,
@@ -160,7 +162,7 @@ export async function createCostEstimatePdf({
   document.setFont('helvetica', 'normal')
   document.setFontSize(8)
   document.text(
-    result.complete ? 'ESTIMATED MONTHLY COST' : 'KNOWN MONTHLY SUBTOTAL',
+    pricingCurrent ? 'ESTIMATED MONTHLY COST' : 'KNOWN MONTHLY SUBTOTAL',
     margin + 14,
     cursor + 18,
   )
@@ -169,7 +171,7 @@ export async function createCostEstimatePdf({
   document.setFontSize(24)
   document.text(money(result.knownGrandTotal, 0), margin + 14, cursor + 43)
   document.setFontSize(9)
-  const statusColor: Rgb = result.complete ? [22, 126, 62] : COLORS.warning
+  const statusColor: Rgb = pricingCurrent ? [22, 126, 62] : COLORS.warning
   document.setTextColor(...statusColor)
   document.text(printable(estimateStatus), margin + 14, cursor + 61)
 
@@ -345,7 +347,15 @@ export async function createCostEstimatePdf({
     head: [['Cost item', 'Source / as of', 'Formula and assumption']],
     body: result.lines.map((line) => [
       printable(line.label),
-      printable(`${line.provenance.source} | ${line.provenance.asOf} | ${line.provenance.maintenance}`),
+      printable([
+        line.provenance.source,
+        line.provenance.asOf,
+        usesLastKnownRate(line) ? 'Last-known Retail price' : line.provenance.maintenance,
+        ...(line.provenance.verification ? [
+          `Latest check: ${line.provenance.verification.checkedAt} (${line.provenance.verification.status})`,
+          line.provenance.verification.reason ?? '',
+        ] : []),
+      ].filter(Boolean).join(' | ')),
       printable(`${line.formula}. ${line.assumption}`),
     ]),
     columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 190 }, 2: { cellWidth: 222 } },

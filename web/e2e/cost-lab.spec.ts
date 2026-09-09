@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
+import { fallbackRateCard } from '../src/domain/rates'
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -16,8 +17,9 @@ test('builds and applies an adaptive guided estimate', async ({ page }) => {
   await page.goto('/?guide=1')
 
   await expect(page.getByRole('heading', { name: 'Build a cost scenario' })).toBeVisible()
-  await expect(page.getByLabel('Draft estimate')).toBeVisible()
+  await expect(page.getByLabel('Draft estimate')).toHaveCount(0)
   await page.getByRole('button', { name: /Customer agent/ }).click()
+  await expect(page.getByLabel('Draft estimate')).toBeVisible()
   await page.getByRole('button', { name: /Production/ }).click()
   await page.getByRole('button', { name: /East US 2/ }).click()
   await page.getByRole('button', { name: /Medium/ }).click()
@@ -82,7 +84,8 @@ test('builds and applies an adaptive guided estimate', async ({ page }) => {
   await reasoningRoute.getByLabel('Deployment').selectOption('primary')
   await expect(reasoningRoute).toContainText('qwen--qwen3.6-27b')
   await expect(page.locator('.cost-line').filter({ hasText: 'qwen--qwen3.6-27b' })).toHaveCount(1)
-  await expect(readiness.getByText('Approval blocked')).toHaveCount(0)
+  await expect(readiness.getByRole('button', { name: /Edit Reasoning assist/ })).toHaveCount(0)
+  await expect(readiness.getByRole('button', { name: 'Edit Microsoft Purview capacity', exact: true })).toBeVisible()
   await page.setViewportSize({ width: 390, height: 844 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
@@ -109,13 +112,18 @@ test('models live, exposes provenance, and renders the desktop workspace', async
   const pocAmount = Number((pocTotal ?? '').replace(/[^0-9.]/g, ''))
   await page.getByRole('button', { name: 'Production' }).click()
   await expect(page.getByRole('button', { name: 'Production' })).toHaveAttribute('aria-pressed', 'true')
-  await expect(headline).not.toHaveText(pocTotal ?? '')
-  const productionAmount = Number((await headline.textContent() ?? '').replace(/[^0-9.]/g, ''))
-  expect(productionAmount).toBeGreaterThan(pocAmount * 100)
-  await expect(page.locator('.guardrail-callout strong')).toContainText(/5[0-9]\.[0-9]%/)
-  const activeRateWarning = page.getByText(/Current estimate excludes 6 active unpriced lines/)
+  await expect(headline).toHaveText(pocTotal ?? '')
+  await page.getByLabel('Monthly users', { exact: true }).fill('500')
+  const higherUsageAmount = Number((await headline.textContent() ?? '').replace(/[^0-9.]/g, ''))
+  expect(higherUsageAmount).toBeGreaterThan(pocAmount)
+  await expect(page.locator('.cost-line').filter({ hasText: 'Microsoft Sentinel ingestion' })).toHaveCount(0)
+  await page.getByRole('tab', { name: 'Guardrail', exact: true }).click()
+  await expect(page.getByRole('switch', { name: 'Toggle Microsoft Sentinel', exact: true })).not.toBeChecked()
+  await page.getByRole('switch', { name: 'Toggle Defender for AI workloads', exact: true }).click()
+  await page.getByRole('switch', { name: 'Toggle Microsoft Purview', exact: true }).click()
+  const activeRateWarning = page.getByText(/Current estimate excludes 2 active unpriced lines/)
   await expect(activeRateWarning).toBeVisible()
-  await expect(activeRateWarning).toContainText('PAYG overflow - capacity required')
+  await expect(activeRateWarning).toContainText('Defender for AI workloads')
   await expect(activeRateWarning).toContainText('Microsoft Purview capacity')
 
   const sourceButton = page.locator('.source-button').first()
@@ -128,6 +136,7 @@ test('models live, exposes provenance, and renders the desktop workspace', async
   await expect(page.getByRole('dialog')).toContainText('must not contain confidential customer identifiers')
   await page.getByRole('button', { name: 'Close scenarios' }).click()
 
+  await page.getByText('Projection, capacity and rate history', { exact: true }).click()
   const chart = page.locator('.chart-wrap svg').first()
   await expect(chart).toBeVisible()
   const chartBox = await chart.boundingBox()
@@ -146,14 +155,64 @@ test('models live, exposes provenance, and renders the desktop workspace', async
 test('keeps controls and readout within a mobile viewport', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
-  await expect(page.locator('.headline__value')).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Estimate summary', exact: true })).toBeInViewport()
   await expect(page.getByRole('tab', { name: 'Run' })).toBeVisible()
+  await page.getByRole('tab', { name: 'Results', exact: true }).click()
+  await expect(page.locator('.headline__value')).toBeVisible()
 
   const hasHorizontalOverflow = await page.evaluate(() =>
     document.documentElement.scrollWidth > document.documentElement.clientWidth,
   )
   expect(hasHorizontalOverflow).toBe(false)
   await page.screenshot({ path: testInfo.outputPath('mobile.png'), fullPage: true })
+})
+
+test('keeps last-known prices visible in estimates, guided setup, and provenance', async ({ page }, testInfo) => {
+  const card = structuredClone(fallbackRateCard)
+  card.syncStatus = 'partial'
+  card.unmatchedKeys.push('model.primary.input')
+  card.rates['model.primary.input']!.verification = {
+    status: 'ambiguous',
+    checkedAt: '2026-09-06T10:00:00Z',
+    reason: 'Conflicting current Retail meters require review; no new price was selected.',
+  }
+  await page.route(/\/api\/rates\?/, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(card) })
+  })
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto('/')
+  await expect(page.locator('.headline')).toContainText('last-known price')
+  await expect(page.locator('.headline .status-inline--ok')).toHaveCount(0)
+  await expect(page.getByLabel('System notices')).toContainText('original values and dates are retained')
+  const readiness = page.getByRole('region', { name: 'Pricing readiness' })
+  await expect(readiness.getByText('Approval blocked')).toBeVisible()
+  await expect(readiness).toContainText('Last-known')
+  await expect(readiness).toContainText('Conflicting current Retail meters')
+
+  const retainedLine = page.locator('.cost-line').filter({ hasText: 'Last-known' }).first()
+  await retainedLine.getByRole('button', { name: /Show source/ }).hover()
+  await expect(page.getByRole('tooltip')).toContainText('Last-known')
+  await expect(page.getByRole('tooltip')).toContainText('ambiguous')
+  await expect(page.getByRole('tooltip')).toContainText('Latest check')
+  await page.keyboard.press('Escape')
+  await page.locator('.headline').scrollIntoViewIfNeeded()
+  await page.screenshot({ path: testInfo.outputPath('last-known-desktop.png'), fullPage: true })
+
+  await page.getByRole('button', { name: 'Guided setup' }).click()
+  await expect(page.getByLabel('Draft estimate')).toHaveCount(0)
+  await expect(page.getByText(/This estimate uses last-known Retail prices/)).toHaveCount(0)
+  await page.getByRole('button', { name: /Employee assistant Internal/ }).click()
+  await expect(page.getByLabel('Draft estimate')).toContainText('last-known price')
+  await expect(page.getByLabel('Draft estimate')).not.toContainText('Pricing complete')
+  await page.setViewportSize({ width: 390, height: 844 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+  await page.getByRole('button', { name: 'Skip to calculator' }).click()
+  await expect(page.locator('.headline')).toContainText('last-known price')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+  await page.getByRole('tab', { name: 'Results', exact: true }).click()
+  await readiness.scrollIntoViewIfNeeded()
+  await page.screenshot({ path: testInfo.outputPath('last-known-mobile.png'), fullPage: true })
 })
 
 test('offers native installation when the browser exposes an install prompt', async ({ page }) => {
@@ -401,6 +460,7 @@ test('isolates model SKU profiles and prices every technical domain', async ({ p
   await page.getByLabel('Fallback price source').fill('Enterprise Marketplace offer')
   await page.getByLabel('Fallback price as of').fill('2026-08-21')
   await expect(readiness.getByText('Approval blocked')).toHaveCount(0)
+  await readiness.getByText('Model rate details', { exact: true }).click()
   await expect(readiness.getByText('Enterprise Marketplace offer').first()).toBeVisible()
 
   await page.getByRole('button', { name: 'Deployment details' }).click()

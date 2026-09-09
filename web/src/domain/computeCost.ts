@@ -16,6 +16,7 @@ import {
 import { getFoundryModel, MODEL_SOURCE_LABELS } from './foundryCatalog'
 import type { FoundryModelCatalogEntry } from './foundryCatalog'
 import { getFoundryService } from './foundryServices'
+import { getRateVerification } from './pricingVerification'
 
 const HOURS_PER_MONTH = 730
 const DAYS_PER_PROJECTION = 30
@@ -55,13 +56,14 @@ const clamp = (value: number, minimum: number, maximum: number) =>
 
 const nonNegative = (value: number) => Math.max(0, value)
 
-const rateProvenance = (rate: Rate): LineProvenance => ({
+const rateProvenance = (rate: Rate, rateCard: RateCard, rateKey: string): LineProvenance => ({
   source: rate.source,
   sourceUrl: rate.sourceUrl,
   asOf: rate.asOf,
   maintenance: rate.maintenance,
   ...(rate.lastReviewed ? { lastReviewed: rate.lastReviewed } : {}),
   ...(rate.unavailableReason ? { unavailableReason: rate.unavailableReason } : {}),
+  ...(getRateVerification(rateCard, rateKey) ? { verification: getRateVerification(rateCard, rateKey) } : {}),
 })
 
 function addRateLine(lines: CostLine[], rateCard: RateCard, input: RateLineInput) {
@@ -93,7 +95,7 @@ function addRateLine(lines: CostLine[], rateCard: RateCard, input: RateLineInput
     assumption: input.assumption,
     scale,
     provenance: usesRateCard || (!usesManualRate && rate)
-      ? rateProvenance(rate)
+      ? rateProvenance(rate, rateCard, input.rateKey)
       : manualProvenance,
   })
 }
@@ -612,17 +614,42 @@ export function computeCost(
     })
   }
   if (config.guardrail.sentinel.enabled) {
-    addRateLine(lines, rateCard, {
+    const billableGb = config.guardrail.sentinel.ingestedGbPerMonth
+    const usageRequired = billableGb === null || !Number.isFinite(billableGb) || billableGb < 0
+    if (usageRequired) {
+      lines.push({
+        id: 'guardrail-sentinel',
+        blockId: 'sentinel',
+        label: 'Microsoft Sentinel ingestion',
+        detail: 'Billable monthly ingestion required',
+        tier: 'guardrail',
+        amount: null,
+        quantity: 0,
+        quantityUnit: 'GB',
+        unitRate: null,
+        rateUnit: 'usage required',
+        formula: 'billable monthly GB x Sentinel simplified PAYG rate',
+        assumption: 'Billable ingestion must be supplied for this workload; no volume is inferred from production stage or user count.',
+        scale: 1,
+        provenance: {
+          source: 'Scenario input required: Sentinel billable monthly ingestion',
+          sourceUrl: 'https://learn.microsoft.com/azure/sentinel/billing',
+          asOf: rateCard.asOf,
+          maintenance: 'manual',
+          unavailableReason: 'Billable monthly ingestion required',
+        },
+      })
+    } else addRateLine(lines, rateCard, {
       id: 'guardrail-sentinel',
       blockId: 'sentinel',
       label: 'Microsoft Sentinel ingestion',
-      detail: `${config.guardrail.sentinel.ingestedGbPerMonth} GB monthly ingestion`,
+        detail: `${billableGb} GB billable monthly ingestion`,
       tier: 'guardrail',
       rateKey: config.guardrail.sentinel.rateKey,
-      quantity: config.guardrail.sentinel.ingestedGbPerMonth,
+        quantity: billableGb,
       quantityUnit: 'GB',
-      formula: 'monthly ingested GB',
-      assumption: 'Ingestion is a workload total and is not multiplied by environment count.',
+        formula: 'billable monthly ingested GB',
+        assumption: 'Explicit workload allocation after applicable free data and benefits; not multiplied by users or environments. Simplified PAYG includes ingestion and Sentinel analysis; do not charge the same ingestion again under observability. Commitment discounts are not modeled.',
     })
   }
   if (config.guardrail.entra.enabled) {

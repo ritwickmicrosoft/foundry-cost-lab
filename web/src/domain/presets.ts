@@ -128,7 +128,7 @@ const commonConfig: Omit<CostConfig, 'posture'> = {
       monthlyTextRecords: 88_000,
     },
     defenderForAi: { enabled: false, rateKey: 'guardrail.defender.transaction1k' },
-    sentinel: { enabled: false, rateKey: 'guardrail.sentinel.gb' , ingestedGbPerMonth: 25 },
+    sentinel: { enabled: false, rateKey: 'guardrail.sentinel.gb', ingestedGbPerMonth: null },
     entra: { enabled: false, rateKey: 'guardrail.entra.userMonth' },
     purview: { enabled: false, rateKey: 'guardrail.purview.capacityHour', capacityUnits: 1 },
   },
@@ -213,8 +213,6 @@ export function createPreset(posture: Posture): CostConfig {
     config.commercialModel.ptuUnits = 60
     config.hostedAgent.sessionsPerMonth = 100_000
     config.guardrail.defenderForAi.enabled = true
-    config.guardrail.sentinel.enabled = true
-    config.guardrail.sentinel.ingestedGbPerMonth = 25_000
     config.guardrail.contentSafety.monthlyTextRecords = 6_160_000
     config.guardrail.purview.enabled = true
     config.platform.apiManagement.enabled = true

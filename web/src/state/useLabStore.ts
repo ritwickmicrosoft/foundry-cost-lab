@@ -4,6 +4,7 @@ import { createPreset } from '../domain/presets'
 import { MAX_COMPARISON_SCENARIOS } from '../domain/scenarioComparison'
 import type { CostConfig, Posture } from '../domain/types'
 import { createResilientStorage } from './resilientStorage'
+import { WORKSPACE_STORAGE_KEY } from './workspaceStorage'
 
 export interface SavedScenario {
   id: string
@@ -16,6 +17,15 @@ export interface SavedScenario {
 
 interface LabState {
   config: CostConfig
+  undoStack: CostConfig[]
+  redoStack: CostConfig[]
+  editGroupActive: boolean
+  editGroupRecorded: boolean
+  beginConfigEdit: () => void
+  endConfigEdit: () => void
+  undoConfig: () => void
+  redoConfig: () => void
+  resetWorkspace: () => void
   scenarios: SavedScenario[]
   comparisonIds: string[]
   comparisonOpen: boolean
@@ -195,9 +205,11 @@ export function migrateLabState(persistedState: unknown, version: number): Persi
   }
 }
 
-const initialConfig = createPreset('poc')
-const currentMonth = new Date().toISOString().slice(0, 7)
-initialConfig.periodStart = `${currentMonth}-01`
+function createInitialConfig() {
+  const config = createPreset('poc')
+  config.periodStart = `${new Date().toISOString().slice(0, 7)}-01`
+  return config
+}
 
 export const labStorage = createResilientStorage(() => window.localStorage)
 
@@ -206,10 +218,60 @@ const createScenarioId = () =>
     ? crypto.randomUUID()
     : `scenario-${Date.now()}`
 
+function configChange(state: LabState, config: CostConfig): Partial<LabState> {
+  if (JSON.stringify(state.config) === JSON.stringify(config)) return {}
+  return {
+    config,
+    undoStack: state.editGroupActive && state.editGroupRecorded
+      ? state.undoStack
+      : [...state.undoStack.slice(-49), structuredClone(state.config)],
+    redoStack: [],
+    editGroupRecorded: state.editGroupActive,
+  }
+}
+
 export const useLabStore = create<LabState>()(
   persist(
     (set, get) => ({
-      config: initialConfig,
+      config: createInitialConfig(),
+      undoStack: [],
+      redoStack: [],
+      editGroupActive: false,
+      editGroupRecorded: false,
+      resetWorkspace: () => set({
+        config: createInitialConfig(),
+        scenarios: [],
+        comparisonIds: [],
+        comparisonOpen: false,
+        undoStack: [],
+        redoStack: [],
+        editGroupActive: false,
+        editGroupRecorded: false,
+      }),
+      beginConfigEdit: () => set({ editGroupActive: true, editGroupRecorded: false }),
+      endConfigEdit: () => set({ editGroupActive: false, editGroupRecorded: false }),
+      undoConfig: () => set((state) => {
+        const previous = state.undoStack.at(-1)
+        if (!previous) return state
+        return {
+          config: structuredClone(previous),
+          undoStack: state.undoStack.slice(0, -1),
+          redoStack: [...state.redoStack.slice(-49), structuredClone(state.config)],
+          editGroupActive: false,
+          editGroupRecorded: false,
+        }
+      }),
+      redoConfig: () => set((state) => {
+        const next = state.redoStack.at(-1)
+        if (!next) return state
+        return {
+          config: structuredClone(next),
+          undoStack: [...state.undoStack.slice(-49), structuredClone(state.config)],
+          redoStack: state.redoStack.slice(0, -1),
+          editGroupActive: false,
+          editGroupRecorded: false,
+        }
+      }),
       scenarios: [],
       comparisonIds: [],
       comparisonOpen: false,
@@ -217,16 +279,11 @@ export const useLabStore = create<LabState>()(
         set((state) => {
           const config = structuredClone(state.config)
           update(config)
-          return { config }
+          return configChange(state, config)
         }),
-      replaceConfig: (config) => set({ config: structuredClone(config) }),
+      replaceConfig: (config) => set((state) => configChange(state, structuredClone(config))),
       applyPreset: (posture) =>
-        set((state) => {
-          const config = createPreset(posture)
-          config.periodStart = state.config.periodStart
-          config.region = state.config.region
-          return { config }
-        }),
+        set((state) => configChange(state, { ...structuredClone(state.config), posture })),
       saveScenario: (name, rateCardAsOf) => {
         const cleanName = name.trim()
         if (!cleanName) return
@@ -267,7 +324,7 @@ export const useLabStore = create<LabState>()(
       },
       loadScenario: (id) => {
         const scenario = get().scenarios.find((candidate) => candidate.id === id)
-        if (scenario) set({ config: structuredClone(scenario.config) })
+        if (scenario) set((state) => configChange(state, structuredClone(scenario.config)))
       },
       deleteScenario: (id) =>
         set((state) => ({
@@ -286,7 +343,7 @@ export const useLabStore = create<LabState>()(
       closeComparison: () => set({ comparisonOpen: false }),
     }),
     {
-      name: 'foundry-cost-lab',
+      name: WORKSPACE_STORAGE_KEY,
       version: 8,
       storage: createJSONStorage(() => labStorage.storage),
       migrate: migrateLabState,
