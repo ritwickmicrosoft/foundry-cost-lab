@@ -147,6 +147,11 @@ The Azure extension context is signed into a different tenant, so deployment and
 
 ## Production Deployment Evidence
 
+- September 10, 2026 reset fix: commit `3b6cc8c` pushed to GitHub `main`, then `azd deploy web --no-prompt --environment prod` succeeded in 2m30s. Only the web service was published; no API deployment or infrastructure apply occurred.
+- `azd show --environment prod` confirmed `https://salmon-plant-01ce70c0f.7.azurestaticapps.net/`. The production `default` Static Web Apps environment is `Ready`, last updated `2026-09-10T15:55:47.020580+00:00`.
+- Live smoke check at `2026-09-10T15:56:37.073Z`: `/api/health` returned HTTP 200 and `healthy`; all eight regional snapshots are fresh from September 10. Existing partial pricing coverage remains explicit and unchanged. Root, rates, catalog, and service-worker routes returned managed-Entra HTTP 302 redirects for anonymous callers.
+- Live role verification passed for identity `82cef8db-5006-489e-830f-3d2b3331ef49`: catalog reader at subscription scope and resource-scoped monitoring, Blob, invitation, email, and comparison-model roles remain present. No permission changes were made.
+- Signed-in production reset was not exercised to avoid deleting the operator's browser-local work. Reset/skip/reload and fresh-entry behavior passed local browser regressions before publication. Remote GitHub CI status could not be inspected because GitHub CLI is not authenticated; local release checks passed.
 - GPT-5.4-mini pricing update deployed September 7, 2026 using `azd deploy api --no-prompt --environment prod`; API publishing succeeded in 1m34s. No web deployment or infrastructure apply was performed.
 - A secured ARM host-admin invocation with structured JSON `{ "input": "{}" }` returned HTTP 202. `MORNING_SYNC_SUCCESS` at `2026-09-07T06:31:58Z` confirmed all four regional rate and catalog snapshots refreshed from `2026-09-07T06:31:25.236Z`.
 - Refreshed rate match/unmatched counts: Canada Central 55/27, Canada East 52/30, East US 58/24, East US 2 57/25. The stricter identity checks retain ambiguous existing prices as last-known; these counts do not claim full coverage. GPT-5.4-mini Global Standard remains unpriced for Canada Central.
