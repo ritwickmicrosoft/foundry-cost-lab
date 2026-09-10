@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { createPreset } from '../domain/presets'
+import { createEmptyConfig, createPreset } from '../domain/presets'
 import { MAX_COMPARISON_SCENARIOS } from '../domain/scenarioComparison'
 import type { CostConfig, Posture } from '../domain/types'
 import { createResilientStorage } from './resilientStorage'
@@ -239,7 +239,7 @@ export const useLabStore = create<LabState>()(
       editGroupActive: false,
       editGroupRecorded: false,
       resetWorkspace: () => set({
-        config: createInitialConfig(),
+        config: createEmptyConfig(),
         scenarios: [],
         comparisonIds: [],
         comparisonOpen: false,

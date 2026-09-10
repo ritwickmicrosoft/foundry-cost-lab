@@ -140,9 +140,9 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog, focusR
               <NumberField
                 label="Active days"
                 value={config.workload.activeDaysPerMonth}
-                min={1}
+                min={0}
                 max={31}
-                onChange={(value) => updateConfig((draft) => { draft.workload.activeDaysPerMonth = value ?? 1 })}
+                onChange={(value) => updateConfig((draft) => { draft.workload.activeDaysPerMonth = value ?? 0 })}
               />
               <NumberField
                 label="Requests / user / day"
@@ -152,7 +152,7 @@ export function ConfigPanel({ config, updateConfig, applyPreset, catalog, focusR
               <SliderField
                 label="Agent turns"
                 value={config.workload.agentTurnMultiplier}
-                min={1}
+                min={0}
                 max={12}
                 suffix="x"
                 onChange={(value) => updateConfig((draft) => { draft.workload.agentTurnMultiplier = value })}

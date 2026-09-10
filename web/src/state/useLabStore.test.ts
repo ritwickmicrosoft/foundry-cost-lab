@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createPreset } from '../domain/presets'
+import { computeCost } from '../domain/computeCost'
+import { createEmptyConfig, createPreset } from '../domain/presets'
+import { fallbackRateCard } from '../domain/rates'
 import { MAX_COMPARISON_SCENARIOS } from '../domain/scenarioComparison'
 import type { CostConfig } from '../domain/types'
 import { migrateLabState, useLabStore, type SavedScenario } from './useLabStore'
@@ -91,6 +93,28 @@ describe('calculator edit history', () => {
     expect(persisted).not.toHaveProperty('redoStack')
   })
 
+  it('starts the calculator with no workload after a workspace reset', () => {
+    useLabStore.getState().resetWorkspace()
+
+    const config = useLabStore.getState().config
+    const expectClearedInputs = (value: unknown) => {
+      if (typeof value === 'number') expect(value).toBe(0)
+      if (typeof value === 'boolean') expect(value).toBe(false)
+      if (value !== null && typeof value === 'object') {
+        Object.values(value).forEach(expectClearedInputs)
+      }
+    }
+    expectClearedInputs({ ...config, environments: 0, modelPortfolio: {} })
+    expect(config.environments).toBe(1)
+    expect(config.modelPortfolio).toEqual(createPreset('poc').modelPortfolio)
+    expect(config.periodStart).toBe(`${new Date().toISOString().slice(0, 7)}-01`)
+    expect(computeCost(config, fallbackRateCard)).toMatchObject({
+      lines: [], knownGrandTotal: 0, dailyBurn: 0,
+      metrics: { monthlyTurns: 0, primaryInputTokens: 0, primaryOutputTokens: 0, mcpSchemaTokens: 0 },
+    })
+    expect(createPreset('poc').workload.monthlyUsers).toBe(250)
+  })
+
   it('resets all scenario data and history without allowing undo to recover it', () => {
     useLabStore.getState().applyPreset('production')
     useLabStore.getState().updateConfig((config) => {
@@ -113,8 +137,7 @@ describe('calculator edit history', () => {
 
     useLabStore.getState().resetWorkspace()
 
-    const expected = createPreset('poc')
-    expected.periodStart = `${new Date().toISOString().slice(0, 7)}-01`
+    const expected = createEmptyConfig()
     expect(useLabStore.getState()).toMatchObject({
       config: expected, scenarios: [], comparisonIds: [], comparisonOpen: false,
       undoStack: [], redoStack: [], editGroupActive: false, editGroupRecorded: false,

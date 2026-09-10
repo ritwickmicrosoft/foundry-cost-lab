@@ -201,6 +201,18 @@ The Azure extension context is signed into a different tenant, so deployment and
 
 ## Section 7: Validation Proof
 
+### September 10, 2026 web-only reset release
+
+- User confirmed committing/pushing the reset fix to GitHub `main` and deploying only the existing prod web service in `Ritwick - Demo` (`1d53bfb3-a84c-4eb4-8c79-f29dc8424b6a`), `rg-foundry-cost-prod`, East US 2. No API deployment, infrastructure apply, authentication change, or stored-data mutation is included.
+- `npm --prefix web test`: 118 passed. Frontend lint and production build passed. `npm --prefix web audit --audit-level=high`: zero vulnerabilities.
+- Browser release coverage: 45 tests passed before terminal reuse interrupted the last workspace tests; `npm --prefix web run test:e2e -- workspace-ux.spec.ts` then passed all 10 workspace tests, completing coverage of all 48 scenarios. The eight reset tests cover zero consumption, disabled services, zero cost, skip, reload, new entry, storage failures, accessibility, desktop and mobile.
+- Azure MCP `validate_azure_yaml`: passed against the stable schema. Azure CLI account and azd authenticated operator match the approved production subscription; azd 1.31.2 and existing `prod` environment remain available.
+- Resource-group inventory resolved exactly one `azd-service-name=web` target: `swa-foundry-cost-rm6kp7ehyjzk`. Existing subscription/location and target were explicitly confirmed by the user.
+- `azd provision --preview --no-prompt --environment prod`: passed, read-only, with no creates or deletes. Existing API/AVM normalization differences were reported; no infrastructure changes will be applied. Policy assignment listing completed with no entries returned for the requested group scope.
+- `azd package web --no-prompt --environment prod`: passed. API packaging is excluded from this web-only release; Docker, Aspire, container images, and new resource quotas do not apply.
+- Static role review confirms this browser-only reset change adds no backend operations or identity requirements. Existing scoped Storage, monitoring, catalog, invitation, email and comparison model roles remain unchanged.
+- GitHub deployment workflow remains manual-dispatch only; pushing `main` triggers CI, not a second Azure deployment.
+
 ### September 8, 2026 web and API release
 
 - User confirmed GitHub `main` publication and code-only deployment of both existing prod services in `Ritwick - Demo` (`1d53bfb3-a84c-4eb4-8c79-f29dc8424b6a`), `rg-foundry-cost-prod`, East US 2. Infrastructure apply, stored-scenario changes, and authentication changes are excluded.

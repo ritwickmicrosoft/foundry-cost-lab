@@ -199,6 +199,24 @@ const commonConfig: Omit<CostConfig, 'posture'> = {
 
 const clone = <T>(value: T): T => structuredClone(value)
 
+export function createEmptyConfig(): CostConfig {
+  const clearInputs = (value: unknown): unknown => {
+    if (typeof value === 'number') return 0
+    if (typeof value === 'boolean') return false
+    if (Array.isArray(value)) return value.map(clearInputs)
+    if (value !== null && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, clearInputs(entry)]))
+    }
+    return value
+  }
+
+  const config = clearInputs(createPreset('poc')) as CostConfig
+  config.periodStart = `${new Date().toISOString().slice(0, 7)}-01`
+  config.environments = 1
+  config.modelPortfolio.routes[0]!.trafficPercent = 100
+  return config
+}
+
 export function createPreset(posture: Posture): CostConfig {
   const config: CostConfig = { ...clone(commonConfig), posture }
 

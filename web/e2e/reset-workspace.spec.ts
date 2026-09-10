@@ -27,6 +27,19 @@ async function saveScenario(page: Page, name: string) {
   await dialog.getByRole('button', { name: 'Close scenarios', exact: true }).click()
 }
 
+async function expectEmptyCalculator(page: Page) {
+  for (const label of ['Monthly users', 'Active days', 'Requests / user / day', 'Input / turn', 'Output / turn', 'MCP schema / turn', 'Non-prod ratio', 'Secondary region']) {
+    await expect(page.getByLabel(label, { exact: true })).toHaveValue('0')
+  }
+  await expect(page.getByRole('slider', { name: 'Agent turns', exact: true })).toHaveAttribute('aria-valuenow', '0')
+  await expect(page.locator('.headline__value')).toContainText('$0')
+  for (const tier of ['Run', 'Guardrail', 'Platform', 'Change']) {
+    await page.getByRole('tab', { name: tier, exact: true }).click()
+    await expect(page.getByRole('switch', { checked: true })).toHaveCount(0)
+  }
+  await page.getByRole('tab', { name: 'Run', exact: true }).click()
+}
+
 test('preserves work on refresh and leaves everything unchanged on Cancel or Escape', async ({ page }) => {
   await page.goto('/')
   await page.getByLabel('Monthly users', { exact: true }).fill('789')
@@ -95,7 +108,7 @@ for (const profile of [
     }), { workspaceKey, guideKey })
     expect(storage.workspace.state.scenarios).toEqual([])
     expect(storage.workspace.state.comparisonIds).toEqual([])
-    expect(storage.workspace.state.config.workload.monthlyUsers).toBe(250)
+    expect(storage.workspace.state.config.workload.monthlyUsers).toBe(0)
     expect(storage.workspace.state.config.region).toBe('canadacentral')
     expect(storage.workspace.state.config.commercialModel.priceProfiles).toEqual([])
     expect(storage.guide).toBeNull()
@@ -106,9 +119,12 @@ for (const profile of [
     await expect(page.getByRole('heading', { name: 'Build a cost scenario', exact: true })).toBeVisible()
     await expect(page.getByLabel('Draft estimate', { exact: true })).toHaveCount(0)
     await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
-    await expect(page.getByLabel('Monthly users', { exact: true })).toHaveValue('250')
+    await expectEmptyCalculator(page)
     await expect(page.getByRole('button', { name: 'Undo last edit', exact: true })).toBeDisabled()
     await expect(page.getByRole('button', { name: 'Redo edit', exact: true })).toBeDisabled()
+    await page.screenshot({ path: testInfo.outputPath('empty-calculator.png'), fullPage: false })
+    await page.reload()
+    await expectEmptyCalculator(page)
     await page.getByRole('button', { name: /^Scenarios/ }).click()
     await expect(page.getByRole('dialog', { name: 'Scenarios', exact: true })).toContainText('No saved scenarios in this browser.')
   })
@@ -128,6 +144,22 @@ test('shows no preset estimate before the first choice or after resetting the gu
   await expect(page.getByRole('complementary', { name: 'Draft estimate', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Employee assistant Internal/ })).toHaveAttribute('aria-pressed', 'false')
   await expect(page.getByRole('button', { name: /Customer agent External/ })).toHaveAttribute('aria-pressed', 'false')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
+  await expectEmptyCalculator(page)
+  await page.getByLabel('Monthly users', { exact: true }).fill('100')
+  await page.getByLabel('Active days', { exact: true }).fill('20')
+  await page.getByLabel('Requests / user / day', { exact: true }).fill('2')
+  await page.getByRole('slider', { name: 'Agent turns', exact: true }).focus()
+  await page.keyboard.press('ArrowRight')
+  await page.getByLabel('Input / turn', { exact: true }).fill('1000')
+  await page.getByLabel('Output / turn', { exact: true }).fill('200')
+  await page.getByRole('region', { name: 'Primary model', exact: true }).getByRole('switch').click()
+  await expect(page.locator('.headline__value')).not.toContainText('$0')
+  await page.reload()
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
+  await expect(page.getByLabel('Monthly users', { exact: true })).toHaveValue('100')
+  await expect(page.getByLabel('Input / turn', { exact: true })).toHaveValue('1000')
+  await expect(page.getByLabel('MCP schema / turn', { exact: true })).toHaveValue('0')
 })
 
 test('does not show saved scenario warnings in an unstarted guide or change the saved estimate', async ({ page }) => {
@@ -212,5 +244,5 @@ test('can reset an in-memory session and reports that browser deletion was unava
   await expect(page.getByRole('heading', { name: 'Build a cost scenario', exact: true })).toBeVisible()
   await expect(page.getByRole('status')).toContainText('Browser storage could not be cleared')
   await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
-  await expect(page.getByLabel('Monthly users', { exact: true })).toHaveValue('250')
+  await expectEmptyCalculator(page)
 })
