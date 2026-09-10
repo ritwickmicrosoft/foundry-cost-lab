@@ -1,0 +1,2 @@
+# Historical Azure role-definition GUID, not an authentication credential.
+a69642144a419e8716ef3498428e703a6e4efee7:infra/main.bicep:generic-api-key:44
