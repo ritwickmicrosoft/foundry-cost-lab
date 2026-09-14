@@ -16,6 +16,7 @@ test.beforeEach(async ({ page }) => {
 test('keeps mobile estimates visible while switching between configuration and results', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   const summary = page.getByRole('region', { name: 'Estimate summary', exact: true })
   await expect(summary).toBeInViewport()
   await expect(summary.locator('output')).toHaveText(/^\$/)
@@ -39,6 +40,7 @@ test('keeps mobile estimates visible while switching between configuration and r
 test('opens the owning settings from a pricing issue on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await page.getByRole('button', { name: 'Production', exact: true }).click()
   await page.getByRole('tab', { name: 'Guardrail', exact: true }).click()
   await page.getByRole('switch', { name: 'Toggle Microsoft Purview', exact: true }).click()
@@ -55,6 +57,7 @@ test('opens the owning settings from a pricing issue on mobile', async ({ page }
 test('undoes a complete field edit and redoes it', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Undo last edit', exact: true })).toBeDisabled()
   const users = page.getByLabel('Monthly users', { exact: true })
   await users.fill('5')
@@ -103,6 +106,7 @@ for (const { width, scheme } of [
     await page.setViewportSize({ width, height: width < 860 ? 844 : 1000 })
     await page.emulateMedia({ colorScheme: scheme })
     await page.goto('/')
+    await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
     if (width < 860) {
       await page.getByRole('tab', { name: 'Configure', exact: true }).focus()
       await page.getByRole('tab', { name: 'Configure', exact: true }).press('ArrowRight')
@@ -135,6 +139,7 @@ for (const { width, scheme } of [
 test('keeps large totals and bottom controls usable on a narrow phone', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 })
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await page.getByLabel('Monthly users', { exact: true }).fill('1000000')
   const summary = page.getByRole('region', { name: 'Estimate summary', exact: true })
   await expect(summary.locator('output')).toContainText('M')

@@ -147,6 +147,9 @@ The Azure extension context is signed into a different tenant, so deployment and
 
 ## Production Deployment Evidence
 
+- September 14, 2026 guided-first homepage follow-up: `azd deploy web --no-prompt --environment prod` succeeded in 1m53s from the tested local working tree. The plain homepage now initializes guided setup for new and returning users, including refreshes; skip/apply and stored estimates remain unchanged. GitHub publication of the same tested change was requested after deployment. No API deployment, infrastructure apply, permission change, or live data migration/reset was performed.
+- `azd show --environment prod` confirmed `https://salmon-plant-01ce70c0f.7.azurestaticapps.net/`. The production `default` environment is `Ready`, last updated `2026-09-14T15:49:20.395532+00:00`. Anonymous smoke checks at `2026-09-14T15:50:20.435Z` returned `/api/health` HTTP 200 and `healthy`, with all eight regional snapshots fresh. Root, rates, catalog, and service-worker requests remain Entra HTTP 302 redirects; `/.auth/me` returns a null principal.
+- Azure MCP live role verification confirms the existing managed identity still has resource-scoped Blob, monitoring, invitation, email, and comparison-model roles. Signed-in production UI was not exercised; the user confirmed local behavior and all 53 browser workflows passed before deployment. The subsequent GitHub publication includes source, tests, documentation, and deployment evidence, while excluding the local showcase.
 - September 14, 2026 decision-support release: commit `686f0c9b4731a1119fb03bd40a86e8f62f0d2b57` pushed to `ritwickmicrosoft/foundry-cost-lab` on `main`, independently confirmed with `git ls-remote`. The local showcase was excluded. `azd deploy web --no-prompt --environment prod` succeeded in 1m30s; no API deployment or infrastructure apply occurred.
 - `azd show --environment prod` confirmed `https://salmon-plant-01ce70c0f.7.azurestaticapps.net/`. The `default` Static Web Apps environment is `Ready`, last updated `2026-09-14T14:11:40.086227+00:00`.
 - Anonymous smoke checks at `2026-09-14T14:13:18.823Z`: `/api/health` returned HTTP 200 and `healthy`; all eight rate/catalog snapshots are fresh from September 14 at 10:00 UTC. Root, rates, catalog, and service-worker routes returned Entra HTTP 302 redirects; `/.auth/me` returned a null principal. Existing partial pricing coverage remains explicit.
@@ -210,6 +213,15 @@ The Azure extension context is signed into a different tenant, so deployment and
 - Live RBAC: managed identity `82cef8db-5006-489e-830f-3d2b3331ef49` retains Storage Blob Data Owner, Monitoring Metrics Publisher, and the custom catalog-only subscription role at their intended scopes
 
 ## Section 7: Validation Proof
+
+### September 14, 2026 guided-first homepage follow-up
+
+- User tested the local homepage and requested production deployment to the same previously confirmed `prod` web target in `Ritwick - Demo`, `rg-foundry-cost-prod`, East US 2. Scope is frontend only; no API deployment, infrastructure apply, role changes, GitHub push, or live workspace reset/import is included.
+- The only application-code difference initializes guided setup as open for every mount, instead of consulting the persisted completion flag. Skipping retains saved inputs; applying remains an explicit reviewed replacement. Authentication and legacy-data ownership checks still come first.
+- `npm --prefix web run test:e2e`: all 53 workflows passed on September 14, including new plain-homepage tests at 1440px and 390px for new users, returning users, refresh, query-link compatibility, and unchanged saved configurations/scenarios. Post-authentication landing, apply, skip, reset, and responsive accessibility also passed. Frontend build and lint passed; the existing main-bundle size warning remains non-blocking.
+- Azure MCP stable-schema validation and `azd auth login --check-status` passed. Safe `prod` environment inspection confirms subscription `1d53bfb3-a84c-4eb4-8c79-f29dc8424b6a` and `eastus2`. Live resource inventory found the expected single Static Web App `swa-foundry-cost-rm6kp7ehyjzk`.
+- `azd provision --preview --no-prompt --environment prod`: passed read-only in 33 seconds with no creates or deletes. Existing configuration differences will not be applied. The same-day effective-policy and static-RBAC review from the prior release remains applicable: no resource, network, SKU, identity, or permission configuration changed.
+- `azd package web --no-prompt --environment prod`: passed in 1m01s, including the current production build. No Docker, Aspire, API package, or new capacity applies. The same-day zero-vulnerability dependency audit remains applicable; no dependency or lockfile changed.
 
 ### September 14, 2026 decision-support web release
 

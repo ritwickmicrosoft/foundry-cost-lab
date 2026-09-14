@@ -14,6 +14,7 @@ test.beforeEach(async ({ page }) => {
 
 test('reviews planning sensitivity and invalidates measured workload evidence', async ({ page }, testInfo) => {
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await page.getByText('Planning range and sensitivity', { exact: true }).click()
   await expect(page.getByLabel('Traffic variation', { exact: true })).toHaveValue('20')
   await expect(page.getByText('Planning bounds, not confidence intervals.', { exact: false })).toBeVisible()
@@ -40,6 +41,7 @@ test('reviews planning sensitivity and invalidates measured workload evidence', 
 
 test('preserves original revisions and restores a complete workspace backup', async ({ page }, testInfo) => {
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   const originalTotal = await page.locator('.headline__value').innerText()
   await page.getByRole('button', { name: 'Scenarios', exact: true }).click()
   await page.getByLabel('Scenario name', { exact: true }).fill('Revision pilot')
@@ -96,6 +98,8 @@ test('gates production account data and does not silently claim legacy browser w
   await expect(page.getByLabel('Monthly users', { exact: true })).toHaveValue('0')
   await page.getByLabel('Monthly users', { exact: true }).fill('111')
   await page.reload()
+  await expect(page.getByRole('heading', { name: 'Build a cost scenario', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await expect(page.getByLabel('Monthly users', { exact: true })).toHaveValue('111')
   principal = { identityProvider: 'aad', userId: 'account-b', userRoles: ['costlab-user'] }
   await page.evaluate(() => window.dispatchEvent(new Event('focus')))
@@ -201,6 +205,7 @@ test('models live, exposes provenance, and renders the desktop workspace', async
   await page.goto('/')
 
   const headline = page.locator('.headline__value')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await expect(headline).toBeVisible()
   const pocTotal = await headline.textContent()
   const pocAmount = Number((pocTotal ?? '').replace(/[^0-9.]/g, ''))
@@ -249,6 +254,7 @@ test('models live, exposes provenance, and renders the desktop workspace', async
 test('keeps controls and readout within a mobile viewport', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Estimate summary', exact: true })).toBeInViewport()
   await expect(page.getByRole('tab', { name: 'Run' })).toBeVisible()
   await page.getByRole('tab', { name: 'Results', exact: true }).click()
@@ -275,6 +281,7 @@ test('keeps last-known prices visible in estimates, guided setup, and provenance
   })
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await expect(page.locator('.headline')).toContainText('last-known price')
   await expect(page.locator('.headline .status-inline--ok')).toHaveCount(0)
   await expect(page.getByLabel('System notices')).toContainText('original values and dates are retained')
@@ -367,6 +374,7 @@ test('persists, compares, and restores a named scenario', async ({ page }) => {
     })
   })
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   const monthlyUsers = page.getByLabel('Monthly users')
   await monthlyUsers.fill('777')
 
@@ -422,6 +430,7 @@ test('persists, compares, and restores a named scenario', async ({ page }) => {
   await expect(monthlyUsers).toHaveValue('777')
 
   await page.reload()
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await expect(page.getByLabel('Monthly users')).toHaveValue('777')
   await page.getByRole('button', { name: /Scenarios/ }).click()
   await expect(page.getByRole('dialog').getByText('Recovery baseline')).toBeVisible()
@@ -429,6 +438,7 @@ test('persists, compares, and restores a named scenario', async ({ page }) => {
 
 test('exports an auditable PDF and keeps JSON as an editable backup', async ({ page }, testInfo) => {
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
 
   const [pdfDownload] = await Promise.all([
     page.waitForEvent('download'),
@@ -460,6 +470,7 @@ test('exports an auditable PDF and keeps JSON as an editable backup', async ({ p
 
 test('models hosted runtime and all Standard Agent Setup resources', async ({ page }) => {
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await page.getByRole('switch', { name: 'Toggle Foundry hosted agent' }).click()
   await page.getByLabel('Sandbox size').selectOption('2vcpu-4gb')
   await page.getByLabel('Sessions / month').fill('120')
@@ -485,6 +496,7 @@ test('models hosted runtime and all Standard Agent Setup resources', async ({ pa
 
 test('selects models across every Foundry source and adds Foundry services', async ({ page }) => {
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Pay per use' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByLabel('Deployment source')).toHaveCount(0)
   await page.getByRole('button', { name: /Filters/ }).click()
@@ -538,6 +550,7 @@ test('selects models across every Foundry source and adds Foundry services', asy
 test('isolates model SKU profiles and prices every technical domain', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
 
   await page.getByLabel('Find model').fill('claude-fable-5')
   await page.getByRole('radio', { name: /claude-fable-5/ }).first().check()
@@ -585,6 +598,7 @@ test('isolates model SKU profiles and prices every technical domain', async ({ p
 
 test('has no automatically detectable accessibility violations', async ({ page }) => {
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await expect(page.locator('.headline__value')).toBeVisible()
   const results = await new AxeBuilder({ page }).analyze()
   expect(results.violations).toEqual([])
@@ -682,6 +696,7 @@ test('completes the approved invitation automatically and opens the app', async 
 
   await page.goto('/request-access.html')
   await expect(page).toHaveURL('http://127.0.0.1:5173/', { timeout: 8_000 })
+  await expect(page.getByRole('heading', { name: 'Build a cost scenario', exact: true })).toBeVisible()
   expect(principalReads).toBeGreaterThanOrEqual(2)
 })
 
@@ -737,6 +752,7 @@ test('supports four regions without borrowing Canada Central fallback prices', a
     if (request.url().includes('/api/rates?')) rateRequests.push(request.url())
   })
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await expect(page.getByLabel('Azure region').locator('option')).toHaveText([
     'Canada Central', 'Canada East', 'East US', 'East US 2',
   ])
@@ -755,6 +771,7 @@ test('supports four regions without borrowing Canada Central fallback prices', a
 test('serves a synchronized or bundled CAD card locally without an API 404', async ({ page }) => {
   await page.unroute('**/api/rates*')
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
 
   await expect(page.getByText('CAD list-rate estimate')).toBeVisible()
   await expect(page.locator('.freshness')).toContainText(/Built-in rates|Synced rates/)

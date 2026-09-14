@@ -22,15 +22,6 @@ import './App.css'
 
 const ScenarioActions = lazy(() => import('./components/ScenarioManager').then((module) => ({ default: module.ScenarioActions })))
 
-const guidedEstimateStartsOpen = () => {
-  if (new URLSearchParams(window.location.search).get('guide') === '1') return true
-  try {
-    return window.localStorage.getItem(workspaceKey(GUIDED_ESTIMATE_STORAGE_KEY)) !== 'complete'
-  } catch {
-    return true
-  }
-}
-
 const markGuidedEstimateComplete = () => {
   try {
     window.localStorage.setItem(workspaceKey(GUIDED_ESTIMATE_STORAGE_KEY), 'complete')
@@ -53,7 +44,7 @@ function App() {
   const resetWorkspace = useLabStore((state) => state.resetWorkspace)
   const comparisonOpen = useLabStore((state) => state.comparisonOpen)
   const closeComparison = useLabStore((state) => state.closeComparison)
-  const [guidedEstimateOpen, setGuidedEstimateOpen] = useState(guidedEstimateStartsOpen)
+  const [guidedEstimateOpen, setGuidedEstimateOpen] = useState(true)
   const [guidedDraft, setGuidedDraft] = useState<typeof config | null>(null)
   const [workspaceView, setWorkspaceView] = useState('configure')
   const [configFocus, setConfigFocus] = useState<ConfigFocusRequest>()

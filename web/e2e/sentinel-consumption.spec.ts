@@ -23,6 +23,7 @@ for (const width of [1440, 390]) {
   test(`requires explicit Sentinel consumption and updates its cost at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: width === 1440 ? 1000 : 844 })
     await page.goto('/')
+    await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
     await page.getByRole('button', { name: 'Production', exact: true }).click()
     await page.getByRole('tab', { name: 'Guardrail', exact: true }).click()
     const toggle = page.getByRole('switch', { name: 'Toggle Microsoft Sentinel', exact: true })
@@ -71,6 +72,7 @@ for (const width of [1440, 390]) {
 
 test('retains explicit Sentinel usage through toggles, save and reload', async ({ page }) => {
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await page.getByRole('tab', { name: 'Guardrail', exact: true }).click()
   const toggle = page.getByRole('switch', { name: 'Toggle Microsoft Sentinel', exact: true })
   const volume = page.getByLabel('Billable monthly ingestion', { exact: true })
@@ -85,6 +87,7 @@ test('retains explicit Sentinel usage through toggles, save and reload', async (
   await page.getByRole('button', { name: 'Close scenarios', exact: true }).click()
   await volume.fill('12.5')
   await page.reload()
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await page.getByRole('tab', { name: 'Guardrail', exact: true }).click()
   await expect(toggle).toBeChecked()
   await expect(volume).toHaveValue('12.5')

@@ -42,9 +42,11 @@ async function expectEmptyCalculator(page: Page) {
 
 test('preserves work on refresh and leaves everything unchanged on Cancel or Escape', async ({ page }) => {
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await page.getByLabel('Monthly users', { exact: true }).fill('789')
   await saveScenario(page, 'Keep my work')
   await page.reload()
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await expect(page.getByLabel('Monthly users', { exact: true })).toHaveValue('789')
   const saved = await page.evaluate((key) => localStorage.getItem(key), workspaceKey)
   const trigger = page.getByRole('button', { name: 'Reset workspace', exact: true })
@@ -76,6 +78,7 @@ for (const profile of [
     await page.setViewportSize({ width: profile.width, height: profile.width > 860 ? 1000 : 844 })
     await page.emulateMedia({ colorScheme: profile.scheme })
     await page.goto('/')
+    await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
     await page.getByLabel('Monthly users', { exact: true }).fill('9000')
     await saveScenario(page, 'Remove this scenario')
     await page.evaluate(() => {
@@ -124,6 +127,7 @@ for (const profile of [
     await expect(page.getByRole('button', { name: 'Redo edit', exact: true })).toBeDisabled()
     await page.screenshot({ path: testInfo.outputPath('empty-calculator.png'), fullPage: false })
     await page.reload()
+    await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
     await expectEmptyCalculator(page)
     await page.getByRole('button', { name: /^Scenarios/ }).click()
     await expect(page.getByRole('dialog', { name: 'Scenarios', exact: true })).toContainText('No saved scenarios in this browser.')
@@ -164,6 +168,7 @@ test('shows no preset estimate before the first choice or after resetting the gu
 
 test('does not show saved scenario warnings in an unstarted guide or change the saved estimate', async ({ page }) => {
   await page.goto('/')
+  await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
   await page.getByRole('button', { name: 'Production', exact: true }).click()
   await page.getByRole('tab', { name: 'Guardrail', exact: true }).click()
   await page.getByRole('switch', { name: 'Toggle Microsoft Purview', exact: true }).click()
@@ -200,6 +205,7 @@ test('clears comparison selections and does not cache a summary arriving after r
   })
   try {
     await page.goto('/')
+    await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
     await saveScenario(page, 'First comparison')
     await page.getByLabel('Monthly users', { exact: true }).fill('500')
     await saveScenario(page, 'Second comparison')

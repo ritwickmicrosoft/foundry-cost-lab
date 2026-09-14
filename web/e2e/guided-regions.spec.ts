@@ -71,6 +71,40 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
+for (const width of [1440, 390]) {
+  test(`opens the plain homepage in guided setup on every visit at ${width}px without losing saved work`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.goto('/')
+    await expect(page.getByRole('heading', { name: 'Build a cost scenario', exact: true })).toBeVisible()
+    await expect(page.getByLabel('Draft estimate')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
+    await page.getByLabel('Monthly users', { exact: true }).fill('777')
+    await page.getByRole('button', { name: 'Scenarios', exact: true }).click()
+    await page.getByLabel('Scenario name', { exact: true }).fill('Returning workspace')
+    await page.getByRole('button', { name: 'Save current', exact: true }).click()
+    await page.getByRole('button', { name: 'Close scenarios', exact: true }).click()
+    const saved = await page.evaluate(() => localStorage.getItem('foundry-cost-lab'))
+    expect(await page.evaluate(() => localStorage.getItem('foundry-cost-lab-guided-estimate-v1'))).toBe('complete')
+
+    for (const visit of ['refresh', 'homepage', 'guide-link']) {
+      if (visit === 'refresh') await page.reload()
+      else await page.goto(visit === 'homepage' ? '/' : '/?guide=1')
+      await expect(page.getByRole('heading', { name: 'Build a cost scenario', exact: true })).toBeVisible()
+      await expect(page.getByLabel('Draft estimate')).toHaveCount(0)
+      await expect(page.locator('.guide-choice[aria-pressed="true"]')).toHaveCount(0)
+      expect(await page.evaluate(() => localStorage.getItem('foundry-cost-lab'))).toBe(saved)
+      if (visit === 'refresh') {
+        expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+        expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+        await page.screenshot({ path: testInfo.outputPath(`homepage-guide-${width}.png`) })
+      }
+      await page.getByRole('button', { name: 'Skip to calculator', exact: true }).click()
+      await expect(page.getByLabel('Monthly users', { exact: true })).toHaveValue('777')
+      expect(await page.evaluate(() => localStorage.getItem('foundry-cost-lab'))).toBe(saved)
+    }
+  })
+}
+
 for (const region of REGION_IDS) {
   test(`preserves the reviewed regional datasets when applying ${region}`, async ({ page }) => {
     const requests: string[] = []
