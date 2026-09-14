@@ -168,6 +168,11 @@ export interface CostConfig {
   nonProductionRatio: number
   secondaryRegionRatio: number
   commercialOffsetPercent: number
+  planning: {
+    variationPercent: number
+    successfulTasksPerMonth: number | null
+    workloadEvidence: { source: string; periodStart: string; periodEnd: string; signature: string }
+  }
   workload: {
     monthlyUsers: number
     activeDaysPerMonth: number

@@ -11,6 +11,8 @@ import { COST_TIERS, REGION_LABELS, type CostConfig, type CostLine, type CostRes
 import type { RateDiffState } from '../hooks/useRateDiff'
 import { formatDate, formatMoney, formatNumber, formatPercent } from '../utils/format'
 import { ProvenanceTooltip } from './ProvenanceTooltip'
+import { PlanningPanel } from './PlanningPanel'
+import { workloadEvidenceStatus } from '../domain/planning'
 
 const ProjectionChart = lazy(() => import('./ProjectionChart'))
 
@@ -145,9 +147,10 @@ function Breakeven({ result }: { result: CostResult }) {
         <div><span>Configured capacity</span><strong>{capacityTokensPerMonth === null ? 'Not supplied' : `${formatNumber(capacityTokensPerMonth)} tokens/mo`}</strong></div>
         <div className={`feasibility feasibility--${feasibleWithinCapacity === true ? 'yes' : feasibleWithinCapacity === false ? 'no' : 'pending'}`}>
           {feasibleWithinCapacity === true ? <CheckCircle2 aria-hidden="true" /> : <AlertCircle aria-hidden="true" />}
-          <span>{feasibleWithinCapacity === true ? 'Feasible within capacity' : feasibleWithinCapacity === false ? 'Breakeven exceeds capacity' : 'Capacity check pending'}</span>
+          <span>{feasibleWithinCapacity === true ? 'Within monthly token allocation' : feasibleWithinCapacity === false ? 'Breakeven exceeds monthly allocation' : 'Monthly allocation check pending'}</span>
         </div>
       </div>
+      <p className="planning-caveat">Monthly volume only. Peak throughput, latency and deployment quota require separate validation.</p>
     </section>
   )
 }
@@ -232,7 +235,7 @@ function PricingReadinessPanel({ readiness, result, onEdit }: {
         <div className="decision-blockers">
           <AlertCircle aria-hidden="true" />
           <div>
-            <strong>Approval blocked</strong>
+            <strong>Pricing review needed</strong>
             <small>Unpriced and last-known rates require review.</small>
             {readiness.decisionBlockers.length > 0 ? <span>{readiness.decisionBlockers.join(' · ')}</span> : null}
             <ul className="pricing-actions">
@@ -358,6 +361,14 @@ export function ResultsPanel({
         <div><Gauge aria-hidden="true" /><span>Known cost / 1K turns<strong>{result.metrics.monthlyTurns > 0 ? formatMoney(result.knownGrandTotal / result.metrics.monthlyTurns * 1000, 2) : 'Not available'}</strong></span></div>
         <div><Bot aria-hidden="true" /><span>Agent turns<strong>{formatNumber(result.metrics.monthlyTurns)}</strong><small>{formatNumber(result.metrics.mcpSchemaTokens)} MCP schema tokens</small></span></div>
       </div>
+      {config.planning.successfulTasksPerMonth !== null && config.planning.successfulTasksPerMonth > 0 ? (
+        <p>Known cost / successful task: <strong>{formatMoney(result.knownGrandTotal / config.planning.successfulTasksPerMonth, 2)}</strong></p>
+      ) : null}
+      <div className="planning-readiness" aria-label="Decision evidence">
+        <span>Pricing: <strong>{pricingCurrent ? 'Active lines priced' : 'Review needed'}</strong></span>
+        <span>Workload: <strong>{workloadEvidenceStatus(config)}</strong></span>
+        <span>Deployment: <strong>Not validated</strong></span>
+      </div>
 
       <section className="result-section" aria-labelledby="cost-drivers-title">
         <div className="section-heading"><div><span className="eyebrow">Largest contributors</span><h2 id="cost-drivers-title">Known cost drivers</h2></div></div>
@@ -375,6 +386,7 @@ export function ResultsPanel({
       </section>
 
       <TierBreakdown result={result} />
+      <PlanningPanel config={config} rateCard={rateCard} catalog={modelCatalog} />
       <PricingReadinessPanel readiness={pricingReadiness} result={result} onEdit={onEditCostLine} />
       <CostLines result={result} />
 

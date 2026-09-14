@@ -1,7 +1,7 @@
 import * as Tooltip from '@radix-ui/react-tooltip'
 import * as Tabs from '@radix-ui/react-tabs'
 import { AlertTriangle, ChevronDown, MessageCircle, Redo2, RefreshCw, Undo2 } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { ConfigPanel, type ConfigFocusRequest } from './components/ConfigPanel'
 import { AccessRequestsDialog } from './components/AccessRequestsDialog'
 import { GuidedEstimate, GUIDED_ESTIMATE_STORAGE_KEY } from './components/GuidedEstimate'
@@ -9,7 +9,6 @@ import { PwaControls } from './components/PwaControls'
 import { ResultsPanel } from './components/ResultsPanel'
 import { MobileEstimateBar } from './components/MobileEstimateBar'
 import { ResetWorkspaceDialog } from './components/ResetWorkspaceDialog'
-import { ScenarioActions } from './components/ScenarioManager'
 import { ScenarioComparisonWorkspace } from './components/ScenarioComparisonWorkspace'
 import { computeCost } from './domain/computeCost'
 import { getLastKnownRateLines } from './domain/pricingVerification'
@@ -18,13 +17,15 @@ import { useFoundryCatalog } from './hooks/useFoundryCatalog'
 import { useRateCard } from './hooks/useRateCard'
 import { useRateDiff } from './hooks/useRateDiff'
 import { labStorage, useLabStore } from './state/useLabStore'
-import { clearWorkspaceBrowserData } from './state/workspaceStorage'
+import { clearWorkspaceBrowserData, workspaceKey } from './state/workspaceStorage'
 import './App.css'
+
+const ScenarioActions = lazy(() => import('./components/ScenarioManager').then((module) => ({ default: module.ScenarioActions })))
 
 const guidedEstimateStartsOpen = () => {
   if (new URLSearchParams(window.location.search).get('guide') === '1') return true
   try {
-    return window.localStorage.getItem(GUIDED_ESTIMATE_STORAGE_KEY) !== 'complete'
+    return window.localStorage.getItem(workspaceKey(GUIDED_ESTIMATE_STORAGE_KEY)) !== 'complete'
   } catch {
     return true
   }
@@ -32,7 +33,7 @@ const guidedEstimateStartsOpen = () => {
 
 const markGuidedEstimateComplete = () => {
   try {
-    window.localStorage.setItem(GUIDED_ESTIMATE_STORAGE_KEY, 'complete')
+    window.localStorage.setItem(workspaceKey(GUIDED_ESTIMATE_STORAGE_KEY), 'complete')
   } catch {
     // The current session can still continue when browser storage is unavailable.
   }
@@ -180,7 +181,7 @@ function App() {
             <button type="button" className="button button--quiet" onClick={openGuide}>
               <MessageCircle aria-hidden="true" />Guided setup
             </button>
-            {!guidedActive ? <ScenarioActions config={config} result={result} rateCard={rateCard} /> : null}
+            {!guidedActive ? <Suspense fallback={<span role="status">Loading scenario tools...</span>}><ScenarioActions config={config} result={result} rateCard={rateCard} models={catalog.models} loading={loading || catalogLoading} /></Suspense> : null}
             <ResetWorkspaceDialog onReset={startFreshWorkspace} />
           </div>
         </header>

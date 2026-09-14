@@ -37,6 +37,23 @@ const source = (id: string, monthly: number, lineAmount: number | null): Compari
 })
 
 describe('scenario comparison', () => {
+  it('reports workload, cache, and service assumptions that materially change a comparison', () => {
+    const baseline = source('a', 100, 100)
+    const changed = source('b', 200, 200)
+    changed.config.workload.requestsPerUserPerDay *= 2
+    changed.config.commercialModel.cachedInputPercent = 47
+    changed.config.observability.analyticsIngestionGbPerMonth += 10
+    const analysis = buildScenarioComparison([baseline, changed])
+    expect(analysis.workloadComparable).toBe(false)
+    expect(analysis.assumptions.filter((assumption) => assumption.differs).map((assumption) => assumption.id)).toEqual(expect.arrayContaining([
+      'config:workload.requestsPerUserPerDay',
+      'config:commercialModel.cachedInputPercent',
+      'config:observability.analyticsIngestionGbPerMonth',
+    ]))
+    expect(analysis.facts.find((fact) => fact.id === 'comparison:workload')?.text).toContain('not a like-for-like')
+    expect(buildScenarioComparison([baseline, source('c', 80, 80)]).workloadComparable).toBe(true)
+  })
+
   it('requires two or three scenarios', () => {
     expect(() => buildScenarioComparison([source('a', 10, 10)])).toThrow('two or three')
     expect(() => buildScenarioComparison([

@@ -18,6 +18,7 @@ import {
 import { COST_TIERS, type CostTier } from '../domain/types'
 import { useScenarioComparisonData } from '../hooks/useScenarioComparisonData'
 import { useLabStore } from '../state/useLabStore'
+import { workspaceKey } from '../state/workspaceStorage'
 import { formatMoney } from '../utils/format'
 
 const TIER_LABELS: Record<CostTier, string> = {
@@ -154,7 +155,7 @@ export function ScenarioComparisonWorkspace() {
     setAiError(null)
     setAiBrief(null)
     setAiRemaining(null)
-    const cacheKey = comparisonBriefCacheKey(SUMMARY_BUYER_LENS, SUMMARY_COMPETITOR_LENS, analysis.facts)
+    const cacheKey = workspaceKey(comparisonBriefCacheKey(SUMMARY_BUYER_LENS, SUMMARY_COMPETITOR_LENS, analysis.facts))
     try {
       try {
         const cached = window.localStorage.getItem(cacheKey)
@@ -218,12 +219,15 @@ export function ScenarioComparisonWorkspace() {
         <div className="comparison-loading"><LoaderCircle className="spin" aria-hidden="true" />Refreshing regional comparison data...</div>
       ) : null}
       {notices.map((notice) => <div className="notice notice--warning" key={notice}>{notice}</div>)}
+      {!analysis.workloadComparable ? (
+        <div className="comparison-caveat" role="status"><AlertTriangle aria-hidden="true" /><span>Workload inputs differ. Total cost differences are not a like-for-like savings comparison.</span></div>
+      ) : null}
 
       <section className="comparison-band" aria-labelledby="scorecard-title">
         <div className="section-heading">
           <div>
             <span className="eyebrow">At a glance</span>
-            <h3 id="scorecard-title">Business value and readiness</h3>
+            <h3 id="scorecard-title">Cost and included services</h3>
           </div>
           <span className="line-count">{analysis.summaries.length} saved scenarios</span>
         </div>
@@ -253,7 +257,14 @@ export function ScenarioComparisonWorkspace() {
               {summary.complete && summary.lastKnownLineCount === 0 ? 'Complete' : summary.pricingCoverage}
             </span>
           ))} />
-          <ComparisonRow label="Security controls" values={analysis.summaries.map((summary) => `${summary.securityControlCount} of 5 included`)} />
+          <ComparisonRow label="Optional guardrail services" values={sources.map((source) => [
+            source.config.guardrail.contentSafety.enabled ? 'Content Safety' : '',
+            source.config.guardrail.defenderForAi.enabled ? 'Defender for AI' : '',
+            source.config.guardrail.sentinel.enabled ? 'Sentinel' : '',
+            source.config.guardrail.entra.enabled ? 'External ID' : '',
+            source.config.guardrail.purview.enabled ? 'Purview' : '',
+          ].filter(Boolean).join(', ') || 'None selected')} />
+          <ComparisonRow label="Deployment validation" values={sources.map(() => 'Not validated')} />
           <ComparisonRow label="Private networking" values={analysis.summaries.map((summary) => summary.privateNetworking ? 'Included' : 'Excluded')} />
           <ComparisonRow label="Disaster recovery" values={analysis.summaries.map((summary) => summary.disasterRecovery ? 'Included' : 'Excluded')} />
         </div>

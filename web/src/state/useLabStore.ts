@@ -4,7 +4,8 @@ import { createEmptyConfig, createPreset } from '../domain/presets'
 import { MAX_COMPARISON_SCENARIOS } from '../domain/scenarioComparison'
 import type { CostConfig, Posture } from '../domain/types'
 import { createResilientStorage } from './resilientStorage'
-import { WORKSPACE_STORAGE_KEY } from './workspaceStorage'
+import { isLocalWorkspace, setWorkspaceOwner, workspaceKey, WORKSPACE_STORAGE_KEY } from './workspaceStorage'
+import type { EstimateRevision } from '../domain/estimateRevision'
 
 export interface SavedScenario {
   id: string
@@ -13,6 +14,7 @@ export interface SavedScenario {
   rateCardAsOf: string
   createdAt: string
   updatedAt: string
+  revisions?: EstimateRevision[]
 }
 
 interface LabState {
@@ -32,7 +34,8 @@ interface LabState {
   updateConfig: (update: (config: CostConfig) => void) => void
   replaceConfig: (config: CostConfig) => void
   applyPreset: (posture: Posture) => void
-  saveScenario: (name: string, rateCardAsOf: string) => void
+  saveScenario: (name: string, rateCardAsOf: string, revision?: EstimateRevision) => void
+  importScenarios: (scenarios: SavedScenario[]) => void
   loadScenario: (id: string) => void
   deleteScenario: (id: string) => void
   toggleComparison: (id: string) => void
@@ -62,6 +65,11 @@ function migrateCostConfig(config: CostConfig, sourceVersion: number): CostConfi
   return {
     ...defaults,
     ...config,
+    planning: {
+      ...defaults.planning,
+      ...config.planning,
+      workloadEvidence: { ...defaults.planning.workloadEvidence, ...config.planning?.workloadEvidence },
+    },
     commercialModel: {
       ...defaults.commercialModel,
       ...commercialModel,
@@ -284,7 +292,7 @@ export const useLabStore = create<LabState>()(
       replaceConfig: (config) => set((state) => configChange(state, structuredClone(config))),
       applyPreset: (posture) =>
         set((state) => configChange(state, { ...structuredClone(state.config), posture })),
-      saveScenario: (name, rateCardAsOf) => {
+      saveScenario: (name, rateCardAsOf, revision) => {
         const cleanName = name.trim()
         if (!cleanName) return
         const now = new Date().toISOString()
@@ -302,6 +310,7 @@ export const useLabStore = create<LabState>()(
                       config: structuredClone(state.config),
                       rateCardAsOf,
                       updatedAt: now,
+                      revisions: revision ? [...(scenario.revisions ?? []), structuredClone(revision)] : scenario.revisions,
                     }
                   : scenario,
               ),
@@ -317,6 +326,7 @@ export const useLabStore = create<LabState>()(
                 rateCardAsOf,
                 createdAt: now,
                 updatedAt: now,
+                ...(revision ? { revisions: [structuredClone(revision)] } : {}),
               },
             ],
           }
@@ -326,6 +336,16 @@ export const useLabStore = create<LabState>()(
         const scenario = get().scenarios.find((candidate) => candidate.id === id)
         if (scenario) set((state) => configChange(state, structuredClone(scenario.config)))
       },
+      importScenarios: (scenarios) => set((state) => {
+        const names = new Set(state.scenarios.map((scenario) => scenario.name.toLocaleLowerCase()))
+        const imported = scenarios.map((scenario) => {
+          let name = scenario.name
+          for (let suffix = 2; names.has(name.toLocaleLowerCase()); suffix += 1) name = `${scenario.name.slice(0, 65)} (import ${suffix})`
+          names.add(name.toLocaleLowerCase())
+          return { ...structuredClone(scenario), id: createScenarioId(), name }
+        })
+        return { scenarios: [...state.scenarios, ...imported] }
+      }),
       deleteScenario: (id) =>
         set((state) => ({
           scenarios: state.scenarios.filter((scenario) => scenario.id !== id),
@@ -343,8 +363,9 @@ export const useLabStore = create<LabState>()(
       closeComparison: () => set({ comparisonOpen: false }),
     }),
     {
-      name: WORKSPACE_STORAGE_KEY,
-      version: 8,
+      name: workspaceKey(WORKSPACE_STORAGE_KEY),
+      version: 9,
+      skipHydration: !isLocalWorkspace(),
       storage: createJSONStorage(() => labStorage.storage),
       migrate: migrateLabState,
       partialize: (state) => ({
@@ -355,3 +376,15 @@ export const useLabStore = create<LabState>()(
     },
   ),
 )
+
+export async function activateWorkspace(owner: string) {
+  const storage = useLabStore.persist.getOptions().storage
+  useLabStore.persist.setOptions({ storage: { getItem: () => null, setItem: () => {}, removeItem: () => {} } })
+  useLabStore.getState().resetWorkspace()
+  setWorkspaceOwner(owner)
+  useLabStore.persist.setOptions({ name: workspaceKey(WORKSPACE_STORAGE_KEY), storage })
+  const existing = await labStorage.storage.getItem(workspaceKey(WORKSPACE_STORAGE_KEY))
+  await useLabStore.persist.rehydrate()
+  if (!useLabStore.persist.hasHydrated()) throw new Error('Saved workspace could not be restored. Export or reset its browser data before continuing.')
+  if (existing === null) useLabStore.getState().updateConfig(() => {})
+}

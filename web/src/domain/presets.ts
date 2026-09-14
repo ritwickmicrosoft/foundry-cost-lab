@@ -9,6 +9,11 @@ const commonConfig: Omit<CostConfig, 'posture'> = {
   nonProductionRatio: 0.35,
   secondaryRegionRatio: 0,
   commercialOffsetPercent: 0,
+  planning: {
+    variationPercent: 20,
+    successfulTasksPerMonth: null,
+    workloadEvidence: { source: '', periodStart: '', periodEnd: '', signature: '' },
+  },
   workload: {
     monthlyUsers: 250,
     activeDaysPerMonth: 22,

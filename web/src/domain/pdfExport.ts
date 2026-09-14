@@ -1,5 +1,8 @@
 import type { jsPDF as JsPdf } from 'jspdf'
 import { getLastKnownRateLines, getPricingCoverageSummary, usesLastKnownRate } from './pricingVerification'
+import { analyzePlanning, workloadEvidenceStatus } from './planning'
+import { CALCULATION_VERSION } from './estimateRevision'
+import type { FoundryModelCatalogEntry } from './foundryCatalog'
 import {
   COST_TIERS,
   REGION_LABELS,
@@ -56,6 +59,7 @@ interface PdfExportInput {
   rateCard: RateCard
   exportedAt: string
   scenarioName?: string
+  models?: readonly FoundryModelCatalogEntry[]
 }
 
 type PdfWithTable = JsPdf & { lastAutoTable?: { finalY: number } }
@@ -66,6 +70,7 @@ export async function createCostEstimatePdf({
   rateCard,
   exportedAt,
   scenarioName,
+  models,
 }: PdfExportInput): Promise<JsPdf> {
   const [{ jsPDF }, { default: autoTable }] = await Promise.all([
     import('jspdf'),
@@ -221,6 +226,9 @@ export async function createCostEstimatePdf({
       ['Requests/user/day', number(config.workload.requestsPerUserPerDay), 'Agent turns/request', number(config.workload.agentTurnMultiplier)],
       ['Input tokens/turn', number(config.workload.inputTokensPerTurn, 0), 'Output tokens/turn', number(config.workload.outputTokensPerTurn, 0)],
       ['Environments', number(config.environments, 0), 'Commercial mode', `${config.commercialModel.purchaseMode.toUpperCase()} / ${config.commercialModel.billingBasis}`],
+      ['Calculation version', CALCULATION_VERSION, 'Deployment validation', 'Not validated'],
+      ['Workload evidence', workloadEvidenceStatus(config), 'Measurement source', config.planning.workloadEvidence.source || 'Not supplied'],
+      ['Observation period', `${config.planning.workloadEvidence.periodStart || 'Not supplied'} / ${config.planning.workloadEvidence.periodEnd || 'Not supplied'}`, 'Successful tasks/month', config.planning.successfulTasksPerMonth === null ? 'Not supplied' : number(config.planning.successfulTasksPerMonth)],
     ].map((row) => row.map(printable)),
     columnStyles: {
       0: { cellWidth: 100 },
@@ -230,6 +238,20 @@ export async function createCostEstimatePdf({
     },
   })
 
+  const planning = analyzePlanning(config, rateCard, models)
+  cursor = section('Traffic planning bounds (not confidence intervals)', (pdf.lastAutoTable?.finalY ?? cursor) + 24)
+  autoTable(document, {
+    startY: cursor, margin: { left: margin, right: margin }, theme: 'grid',
+    styles: { font: 'helvetica', fontSize: 8, textColor: COLORS.text, cellPadding: 5 },
+    headStyles: { fillColor: COLORS.surface, textColor: COLORS.text },
+    head: [['Traffic assumption', 'Known monthly subtotal', 'Pricing coverage']],
+    body: [
+      [`Monthly users -${planning.percent}%`, money(planning.low.knownGrandTotal), getPricingCoverageSummary(planning.low)],
+      ['Base workload', money(result.knownGrandTotal), getPricingCoverageSummary(result)],
+      [`Monthly users +${planning.percent}%`, money(planning.high.knownGrandTotal), getPricingCoverageSummary(planning.high)],
+      ['Fixed: token sizes, independently entered service quantities, capacity.', '', ''],
+    ].map((row) => row.map(printable)),
+  })
   cursor = section('Model portfolio', (pdf.lastAutoTable?.finalY ?? cursor) + 24)
   autoTable(document, {
     startY: cursor,

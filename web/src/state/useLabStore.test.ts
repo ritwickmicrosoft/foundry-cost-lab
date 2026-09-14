@@ -4,11 +4,41 @@ import { createEmptyConfig, createPreset } from '../domain/presets'
 import { fallbackRateCard } from '../domain/rates'
 import { MAX_COMPARISON_SCENARIOS } from '../domain/scenarioComparison'
 import type { CostConfig } from '../domain/types'
-import { migrateLabState, useLabStore, type SavedScenario } from './useLabStore'
+import { activateWorkspace, migrateLabState, useLabStore, type SavedScenario } from './useLabStore'
+import { captureEstimateRevision } from '../domain/estimateRevision'
 
 describe('calculator edit history', () => {
   beforeEach(() => {
     useLabStore.setState({ config: createPreset('poc'), undoStack: [], redoStack: [], editGroupActive: false, editGroupRecorded: false, scenarios: [] })
+  })
+
+  it('appends revisions instead of overwriting the original estimate', () => {
+    const config = useLabStore.getState().config
+    const revision = captureEstimateRevision(config, computeCost(config, fallbackRateCard), fallbackRateCard)
+    useLabStore.getState().saveScenario('Pilot', fallbackRateCard.asOf, revision)
+    useLabStore.getState().updateConfig((draft) => { draft.workload.monthlyUsers = 900 })
+    const changed = useLabStore.getState().config
+    useLabStore.getState().saveScenario('Pilot', fallbackRateCard.asOf,
+      captureEstimateRevision(changed, computeCost(changed, fallbackRateCard), fallbackRateCard))
+    expect(useLabStore.getState().scenarios).toHaveLength(1)
+    expect(useLabStore.getState().scenarios[0].revisions).toHaveLength(2)
+    expect(useLabStore.getState().scenarios[0].revisions![0]).toEqual(revision)
+  })
+
+  it('restores separate accounts without overwriting either account during switching', async () => {
+    await activateWorkspace('account-a')
+    useLabStore.getState().updateConfig((config) => { config.workload.monthlyUsers = 111 })
+    useLabStore.getState().saveScenario('Account A', fallbackRateCard.asOf)
+    await activateWorkspace('account-b')
+    expect(useLabStore.getState().scenarios).toEqual([])
+    useLabStore.getState().updateConfig((config) => { config.workload.monthlyUsers = 222 })
+    await activateWorkspace('account-a')
+    expect(useLabStore.getState().config.workload.monthlyUsers).toBe(111)
+    expect(useLabStore.getState().scenarios[0].name).toBe('Account A')
+    expect(useLabStore.getState().undoStack).toEqual([])
+    await activateWorkspace('account-b')
+    expect(useLabStore.getState().config.workload.monthlyUsers).toBe(222)
+    await activateWorkspace('')
   })
 
   it('groups a field edit and restores its final value with redo', () => {

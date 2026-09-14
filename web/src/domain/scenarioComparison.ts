@@ -70,6 +70,7 @@ export interface ComparisonFact {
 
 export interface ScenarioComparisonAnalysis {
   baselineIndex: number
+  workloadComparable: boolean
   summaries: ComparisonScenarioSummary[]
   drivers: ComparisonCostDriver[]
   assumptions: ComparisonAssumption[]
@@ -125,6 +126,26 @@ const assumptionRows = (sources: readonly ComparisonSource[]): ComparisonAssumpt
     { id: 'private-networking', label: 'Private networking', values: sources.map((source) => source.config.platform.privateEndpoints.enabled || source.config.networking.privateLinkData.enabled ? 'Included' : 'Excluded') },
     { id: 'disaster-recovery', label: 'Disaster recovery', values: sources.map((source) => source.config.disasterRecovery.enabled ? 'Included' : 'Excluded') },
   ]
+  const flatten = (value: unknown, path = '', entries = new Map<string, string>()): Map<string, string> => {
+    if (value !== null && typeof value === 'object') {
+      for (const [key, child] of Object.entries(value)) flatten(child, path ? `${path}.${key}` : key, entries)
+    } else {
+      entries.set(path, value === null ? 'Not supplied' : String(value))
+    }
+    return entries
+  }
+  const configurations = sources.map((source) => flatten(source.config))
+  const coveredPaths = new Set(['posture', 'region', 'environments', 'workload.monthlyUsers'])
+  const paths = [...new Set(configurations.flatMap((configuration) => [...configuration.keys()]))].sort()
+  for (const path of paths) {
+    if (coveredPaths.has(path) || path === 'planning.workloadEvidence.signature') continue
+    const values = configurations.map((configuration) => configuration.get(path) ?? 'Not supplied')
+    if (new Set(values).size < 2) continue
+    const label = path.split('.').map((part) => /^\d+$/.test(part)
+      ? `#${Number(part) + 1}`
+      : part.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (letter) => letter.toUpperCase())).join(' / ')
+    rows.push({ id: `config:${path}`, label, values })
+  }
   return rows.map((row) => ({ ...row, differs: new Set(row.values).size > 1 }))
 }
 
@@ -137,6 +158,9 @@ export function buildScenarioComparison(
   }
   const requestedBaseline = sources.findIndex((source) => source.id === baselineId)
   const baselineIndex = requestedBaseline >= 0 ? requestedBaseline : 0
+  const workloadComparable = sources.every((source) =>
+    Object.entries(sources[baselineIndex].config.workload).every(([key, value]) =>
+      source.config.workload[key as keyof CostConfig['workload']] === value))
   const summaries = sources.map((source, index): ComparisonScenarioSummary => {
     const monthlyUsers = source.config.workload.monthlyUsers
     const monthlyTurns = source.result.metrics.monthlyTurns
@@ -226,8 +250,16 @@ export function buildScenarioComparison(
     })
   })
 
+  if (!workloadComparable) facts.push({
+    id: 'comparison:workload',
+    category: 'coverage',
+    scenarioKeys: summaries.map((summary) => summary.key),
+    text: 'Workload inputs differ between scenarios. Total cost differences are not a like-for-like savings comparison.',
+  })
+
   return {
     baselineIndex,
+    workloadComparable,
     summaries,
     drivers,
     assumptions: assumptionRows(sources),

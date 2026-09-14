@@ -1,12 +1,62 @@
 import { describe, expect, it } from 'vitest'
 import { computeCost } from './computeCost'
-import { buildScenarioExport, parseScenarioExport } from './export'
+import { buildScenarioExport, buildWorkspaceBackup, parseScenarioExport, parseWorkspaceBackup } from './export'
 import { createPreset } from './presets'
 import { buildGuidedConfig, DEFAULT_GUIDED_ANSWERS } from './guidedEstimate'
 import { FOUNDRY_MODEL_CATALOG } from './foundryCatalog'
 import { fallbackRateCard } from './rates'
+import { repriceEstimateRevision } from './estimateRevision'
 
 describe('scenario export', () => {
+  it('rejects unsafe source links and malformed optional provenance in archives', () => {
+    const config = createPreset('poc')
+    const exported = buildScenarioExport(config, computeCost(config, fallbackRateCard), fallbackRateCard, '2026-09-14T00:00:00Z')
+    exported.revision.result.lines[0].provenance.sourceUrl = 'javascript:alert(1)'
+    expect(() => parseScenarioExport(exported)).toThrow('HTTP or HTTPS')
+    exported.revision.result.lines[0].provenance.sourceUrl = 'https://example.test/'
+    const malformed = exported as unknown as { revision: { result: { lines: Array<{ provenance: { verification: unknown } }> } } }
+    malformed.revision.result.lines[0].provenance.verification = { status: 'unmatched', checkedAt: {} }
+    expect(() => parseScenarioExport(exported)).toThrow('archived verification')
+  })
+
+  it('backs up all saved revisions and validates them before restoring a workspace', () => {
+    const config = createPreset('poc')
+    const current = buildScenarioExport(config, computeCost(config, fallbackRateCard), fallbackRateCard, '2026-09-14T00:00:00Z')
+    const backup = buildWorkspaceBackup(current, [{ id: 'old', name: 'Pilot', config, rateCardAsOf: fallbackRateCard.asOf,
+      createdAt: current.exportedAt, updatedAt: current.exportedAt, revisions: [current.revision, current.revision] }])
+    const restored = parseWorkspaceBackup(JSON.parse(JSON.stringify(backup)))
+    expect(restored.scenarios[0].revisions).toHaveLength(2)
+    expect(restored.scenarios[0].id).not.toBe('old')
+    backup.scenarios[0].revisions![1].result.knownGrandTotal = -1
+    expect(() => parseWorkspaceBackup(backup)).toThrow('archived total')
+  })
+
+  it('round-trips an immutable original and isolates repricing without changing its inputs', () => {
+    const config = createPreset('poc')
+    const result = computeCost(config, fallbackRateCard)
+    const exported = buildScenarioExport(config, result, fallbackRateCard, '2026-09-14T00:00:00Z')
+    const revision = parseScenarioExport(JSON.parse(JSON.stringify(exported))).revision!
+    const original = structuredClone(revision)
+    const changedRates = structuredClone(fallbackRateCard)
+    changedRates.rates[config.commercialModel.inputRateKey].value! *= 2
+    const repricing = repriceEstimateRevision(revision, changedRates, FOUNDRY_MODEL_CATALOG)
+    expect(repricing.rateDelta).toBeGreaterThan(0)
+    expect(repricing.calculationDelta).toBeCloseTo(0)
+    expect(repricing.catalogDelta).toBeCloseTo(0)
+    expect(repricing.totalDelta).toBeCloseTo(repricing.rateDelta)
+    expect(revision).toEqual(original)
+    config.workload.monthlyUsers = 999
+    expect(revision.config.workload.monthlyUsers).not.toBe(999)
+  })
+
+  it('rejects tampered archived totals and still imports legacy files', () => {
+    const config = createPreset('poc')
+    const exported = buildScenarioExport(config, computeCost(config, fallbackRateCard), fallbackRateCard, '2026-09-14T00:00:00Z')
+    exported.revision.result.knownGrandTotal = -1
+    expect(() => parseScenarioExport(exported)).toThrow('archived total')
+    expect(parseScenarioExport({ ...exported, schemaVersion: 1 }).revision).toBeUndefined()
+  })
+
   it.each([null, 0, 75.5, 25_000])('round-trips Sentinel usage %s without replacing it with a preset volume', (volume) => {
     const config = createPreset('production')
     config.guardrail.sentinel.enabled = true
